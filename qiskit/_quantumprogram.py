@@ -741,9 +741,10 @@ class QuantumProgram(object):
             error = {'status': 'Error', 'result': 'Some Problem happened to load the file'}
             raise LookupError(error['result'])
 
-    def available_backends(self):
+    def available_backends(self, extended=False):
         """All the backends that are seen by QISKIT."""
-        return self.__ONLINE_BACKENDS + self.__LOCAL_BACKENDS
+        return qiskit.backends.local_backends(extended) + \
+               qiskit.backends.remote_backends(extended)
 
     def online_backends(self):
         """Get the online backends.
@@ -1061,6 +1062,9 @@ class QuantumProgram(object):
         qobj['id'] = qobj_id
         qobj["config"] = {"max_credits": max_credits, 'backend': backend,
                           "shots": shots}
+
+        # Resolve backend name from a possible short alias or a deprecated name
+        backend = qiskit.backends.resolve_name(backend)
 
         # TODO This backend needs HPC parameters to be passed in order to work
         if backend == 'ibmqx_hpc_qasm_simulator':
