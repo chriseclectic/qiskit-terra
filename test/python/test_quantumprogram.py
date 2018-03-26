@@ -586,7 +586,7 @@ class TestQuantumProgram(QiskitTestCase):
     def test_local_backends_exist(self):
         """Test if there are local backends.
 
-        If all correct some should exists (even if ofline).
+        If all correct some should exists (even if offline).
         """
         _ = QuantumProgram(specs=self.QPS_SPECS)
         local_backends = qiskit.backends.local_backends()
