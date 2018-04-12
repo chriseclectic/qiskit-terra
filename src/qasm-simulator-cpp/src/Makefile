@@ -2,7 +2,7 @@ INCLUDE = -I./ -I./backends -I./engines -I./utilities -I./third-party -I./third-
 WARNINGS = -pedantic -Wall -Wextra -Wfloat-equal -Wundef -Wcast-align -Wwrite-strings -Wmissing-declarations -Wredundant-decls -Wshadow -Woverloaded-virtual
 OPT = -O3 -march=native -ffast-math
 # Install exe into pip location for backends
-OUTPUT_DIR = ../../../qiskit/backends
+OUTPUT_DIR = ../../../out
 
 CC = g++
 
