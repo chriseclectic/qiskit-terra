@@ -18,10 +18,6 @@ from qiskit.quantum_info.operators.symplectic.stabilizer_table import Stabilizer
 from qiskit.quantum_info.operators.symplectic.clifford_append_gate import append_gate
 
 
-def _symeye(n):
-    return (np.block([[np.zeros([n,n]),np.eye(n)],
-                              [np.eye(n),np.zeros([n,n])]])).astype(bool)
-
 class Clifford(BaseOperator):
     """Clifford table operator class"""
 
@@ -138,12 +134,12 @@ class Clifford(BaseOperator):
         # checking that the underlying Stabilizer table array is a valid
         # Clifford array.
 
-        nq =self.n_qubits
-        seye = _symeye(nq)
+        nq = self.n_qubits
+        seye = self._symeye(nq)
         carray = self.table.array
-        test = np.dot(np.transpose(carray),seye)%2
-        test = np.dot(test,carray)%2
-        return np.array_equal(test.astype(bool),seye)
+        test = np.dot(np.transpose(carray), seye) % 2
+        test = np.dot(test, carray) % 2
+        return np.array_equal(test.astype(bool), seye)
 
     def to_matrix(self):
         """Convert operator to Numpy matrix."""
@@ -167,13 +163,12 @@ class Clifford(BaseOperator):
 
     def conjugate(self):
         """Return the conjugate of the Clifford."""
-        #x = self.table.X
-        #z = self.table.Z
-        #ret = self.copy()
-        #ret.table.phase = self.table.phase ^ (np.sum(x & z, axis=1) % 2)
-        #return ret
-    
-    
+        # x = self.table.X
+        # z = self.table.Z
+        # ret = self.copy()
+        # ret.table.phase = self.table.phase ^ (np.sum(x & z, axis=1) % 2)
+        # return ret
+
         # TODO: IMPLEMENT ME!
 
         raise NotImplementedError(
@@ -182,12 +177,13 @@ class Clifford(BaseOperator):
     def transpose(self):
         """Return the transpose of the Clifford."""
 
-        #nq = self.n_qubits
-        #seye = _symeye(nq)
-        #ret = self.copy()
-        #ret.table._array = (np.dot(seye,np.dot(np.transpose(ret.table._array),seye))%2).astype(bool)  
-        #return ret
-    
+        # nq = self.n_qubits
+        # seye = _symeye(nq)
+        # ret = self.copy()
+        # ret.table._array = (np.dot(seye,np.dot(
+        #    np.transpose(ret.table._array),seye))%2).astype(bool)
+        # return ret
+
         # TODO: IMPLEMENT ME!
 
         raise NotImplementedError(
@@ -226,13 +222,13 @@ class Clifford(BaseOperator):
         # Validate dimensions. Note we don't need to get updated input or
         # output dimensions from `_get_compose_dims` as the dimensions of the
         # Clifford object can't be changed by composition
-        #self._get_compose_dims(other, qargs, front)
+        self._get_compose_dims(other, qargs, front)
+
         if qargs is None:
-            return self._compose_clifford(other,front)
+            return self._compose_clifford(other, front)
         else:
             return self._compose_subsystem(other, qargs, front=False)
 
-       
     def dot(self, other, qargs=None):
         """Return the right multiplied operator self * other.
 
@@ -279,8 +275,8 @@ class Clifford(BaseOperator):
     def reset(self):
         """Resets the Clifford object to the identity gate on nqubits
             """
-        self.table._array = np.eye(len(self.table._array),dtype=bool)
-        self.table._phase = np.zeros(len(self.table._phase),dtype=bool)
+        self.table._array = np.eye(len(self.table._array), dtype=np.bool)
+        self.table._phase = np.zeros(len(self.table._phase), dtype=np.bool)
 
     # ---------------------------------------------------------------------
     # Representation conversions
@@ -326,8 +322,7 @@ class Clifford(BaseOperator):
         clifford = Clifford(np.eye(2 * instruction.num_qubits))
         append_gate(clifford, instruction)
         return clifford
-    
-    
+
     # ---------------------------------------------------------------------
     # Internal tensor produce
     # ---------------------------------------------------------------------
@@ -346,7 +341,7 @@ class Clifford(BaseOperator):
             QiskitError: if other cannot be converted into an Clifford.
         """
 
-        stabilizers = []    
+        stabilizers = []
         destabilizers = []
 
         if reverse:
@@ -354,7 +349,7 @@ class Clifford(BaseOperator):
             back = self
         else:
             front = self
-            back =other 
+            back = other
         If = front.n_qubits*'I'
         Ib = back.n_qubits*'I'
 
@@ -369,80 +364,87 @@ class Clifford(BaseOperator):
         dictb = back.to_dict()
         stabilizersb = dictb['stabilizer']
         for s in stabilizersb:
-            if s[0]=='+' or s[0]=='-':
+            if s[0] == '+' or s[0] == '-':
                 stabilizers.append(s[0]+If+s[1:])
             else:
-                stabilizers.append(If+s)   
+                stabilizers.append(If + s)
         destabilizersb = dictb['destabilizer']
         for d in destabilizersb:
-            if d[0]=='+' or d[0]=='-':
+            if d[0] == '+' or d[0] == '-':
                 destabilizers.append(d[0]+If+d[1:])
             else:
-                destabilizers.append(If+d)   
-        return self.from_dict({"destabilizer": destabilizers,"stabilizer": stabilizers})
+                destabilizers.append(If + d)
+        return self.from_dict({"destabilizer": destabilizers, "stabilizer": stabilizers})
 
     # ---------------------------------------------------------------------
     # Internal composition methods
     # ---------------------------------------------------------------------
+
+    @staticmethod
+    def _symeye(n_qubits):
+        """Return block matrix [[0, 1], [1, 0]]"""
+        zero = np.zeros([n_qubits, n_qubits], dtype=np.bool)
+        one = np.eye(n_qubits, dtype=np.bool)
+        return np.block([[zero, one], [one, zero]])
+
     def _compose_subsystem(self, other, qargs, front=False):
         """Return the composition channel."""
         # Create Clifford on full system from subsystem and compose
         nq = self.n_qubits
         no = other.n_qubits
-        fullother=self.copy()
+        fullother = self.copy()
         fullother.reset()
-        for inda,qubita in enumerate(qargs):
+        for inda, qubita in enumerate(qargs):
             qinda = qubita.index
-            for indb,qubitb in enumerate(qargs):
+            for indb, qubitb in enumerate(qargs):
                 qindb = qubitb.index
-                fullother.table._array[nq-1-qinda,nq-1-qindb] = other.table._array[no-1-inda,no-1-indb]
-                fullother.table._array[nq-1-qinda,2*nq-1-qindb] = other.table._array[no-1-inda,2*no-1-indb]
-                fullother.table._array[2*nq-1-qinda,nq-1-qindb] = other.table._array[2*no-1-inda,no-1-indb]
-                fullother.table._array[2*nq-1-qinda,2*nq-1-qindb] = other.table._array[2*no-1-inda,2*no-1-indb]
-                fullother.table._phase[nq-1-qinda] = other.table._phase[no-1-inda]
-                fullother.table._phase[2*nq-1-qinda] = other.table._phase[2*no-1-inda]
-        return self._compose_clifford(fullother,front)
-
+                fullother.table._array[nq - 1 - qinda, nq - 1 - qindb] = other.table._array[
+                    no - 1 - inda, no - 1 - indb]
+                fullother.table._array[nq - 1 - qinda, 2*nq - 1 - qindb] = other.table._array[
+                    no - 1 - inda, 2*no - 1 - indb]
+                fullother.table._array[2*nq - 1 - qinda, nq - 1 - qindb] = other.table._array[
+                    2*no - 1 - inda, no - 1 - indb]
+                fullother.table._array[2*nq - 1 - qinda, 2*nq - 1 - qindb] = other.table._array[
+                    2*no - 1 - inda, 2*no - 1 - indb]
+                fullother.table._phase[nq - 1 - qinda] = other.table._phase[no - 1 - inda]
+                fullother.table._phase[2*nq - 1 - qinda] = other.table._phase[2*no - 1 - inda]
+        return self._compose_clifford(fullother, front)
 
     def _compose_clifford(self, other, front=False):
-        
-        """Return the composition channel assume other is Clifford of same size as self.
-        """
-        nq = self.n_qubits
+        """Return the composition channel assume other is Clifford of same size as self."""
         if front:
-            clifffront=self
-            cliffback=other
+            clifffront = self
+            cliffback = other
         else:
-            clifffront=other
-            cliffback=self
-        output=cliffback.copy()
+            clifffront = other
+            cliffback = self
+        output = cliffback.copy()
 
-        farray =clifffront.table._array
-        barray =cliffback.table._array
-        oarray =output.table._array
-        fphase =clifffront.table._phase
-        bphase =cliffback.table._phase
-        ophase =output.table._phase
-        #zero the array, leave the phases in place
+        farray = clifffront.table._array
+        barray = cliffback.table._array
+        oarray = output.table._array
+        fphase = clifffront.table._phase
+        ophase = output.table._phase
+        # Zero the array, leave the phases in place
         oarray *= False
         for oind, orow in enumerate(oarray):
-            for find,frow in enumerate(farray):
+            for find, frow in enumerate(farray):
                 if barray[oind][find]:
-                    #edit the row in place, return the phase
-                    ophase[oind] = self._rowsum_AG(orow,frow,ophase[oind]^fphase[find])
-                
-                
+                    # Edit the row in place, return the phase
+                    ophase[oind] = self._rowsum_AG(orow, frow, ophase[oind] ^ fphase[find])
+
         return output
 
-    def _rowsum_AG(self,orow,frow,phase):
-        #I've never understood rowsum, here's an easier way
+    def _rowsum_AG(self, orow, frow, phase):
+        # I've never understood rowsum, here's an easier way
         nq = len(orow)//2
         for ind in range(nq):
-            phase=phase^self._g_AG(orow[ind],orow[nq+ind],frow[ind],frow[nq+ind])
-        np.logical_xor(orow,frow,out=orow)
-        
+            phase = phase ^ self._g_AG(orow[ind], orow[nq+ind], frow[ind], frow[nq+ind])
+        np.logical_xor(orow, frow, out=orow)
+
         return phase
-    
-        
-    def _g_AG(self,x1,z1,x2,z2):
-        return (not x1 and z1 and x2 and not z2) or (x1 and not z1 and x2 and z2) or (x1 and z1 and not x2 and z2)
+
+    def _g_AG(self, x1, z1, x2, z2):
+        return ((not x1 and z1 and x2 and not z2)
+                or (x1 and not z1 and x2 and z2)
+                or (x1 and z1 and not x2 and z2))
