@@ -134,31 +134,16 @@ class Clifford(BaseOperator):
         # checking that the underlying Stabilizer table array is a valid
         # Clifford array.
 
-        if atol is None:
-            atol = self._atol
-        if rtol is None:
-            rtol = self._rtol
-
         # Condition is
         # table.T * [[0, 1], [1, 0]] * table = [[0, 1], [1, 0]]
         # where we are block matrix multiplying using symplectic product
 
-        block_one = np.eye(self.n_qubits, dtype=np.bool)
-        block_zero = np.zeros((self.n_qubits, self.n_qubits), dtype=np.bool)
+        one = np.eye(self.n_qubits, dtype=int)
+        zero = np.zeros((self.n_qubits, self.n_qubits), dtype=int)
+        seye = np.block([[zero, one], [one, zero]])
+        arr = self.table.array.astype(int)
 
-        s00 = self.destabilizer.X
-        s01 = self.destabilizer.Z
-        s10 = self.stabilizer.X
-        s11 = self.stabilizer.Z
-
-        return (np.allclose(s00.T.dot(s10) + s10.T.dot(s00) % 2,
-                block_one, atol=atol, rtol=rtol) and
-                np.allclose(s00.T.dot(s11) + s10.T.dot(s01) % 2,
-                block_zero, atol=atol, rtol=rtol) and
-                np.allclose(s01.T.dot(s10) + s11.T.dot(s00) % 2,
-                block_one, atol=atol, rtol=rtol) and
-                np.allclose(s01.T.dot(s11) + s11.T.dot(s01) % 2,
-                block_zero, atol=atol, rtol=rtol))
+        return np.array_equal(arr.T.dot(seye).dot(arr) % 2, seye)
 
     def to_matrix(self):
         """Convert operator to Numpy matrix."""
