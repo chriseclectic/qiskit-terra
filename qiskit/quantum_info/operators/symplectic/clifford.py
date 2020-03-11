@@ -134,12 +134,31 @@ class Clifford(BaseOperator):
         # checking that the underlying Stabilizer table array is a valid
         # Clifford array.
 
-        nq = self.n_qubits
-        seye = self._symeye(nq)
-        carray = self.table.array
-        test = np.dot(np.transpose(carray), seye) % 2
-        test = np.dot(test, carray) % 2
-        return np.array_equal(test.astype(bool), seye)
+        if atol is None:
+            atol = self._atol
+        if rtol is None:
+            rtol = self._rtol
+
+        # Condition is
+        # table.T * [[0, 1], [1, 0]] * table = [[0, 1], [1, 0]]
+        # where we are block matrix multiplying using symplectic product
+
+        block_one = np.eye(self.n_qubits, dtype=np.bool)
+        block_zero = np.zeros((self.n_qubits, self.n_qubits), dtype=np.bool)
+
+        s00 = self.destabilizer.X
+        s01 = self.destabilizer.Z
+        s10 = self.stabilizer.X
+        s11 = self.stabilizer.Z
+
+        return (np.allclose(s00.T.dot(s10) + s10.T.dot(s00) % 2,
+                block_one, atol=atol, rtol=rtol) and
+                np.allclose(s00.T.dot(s11) + s10.T.dot(s01) % 2,
+                block_zero, atol=atol, rtol=rtol) and
+                np.allclose(s01.T.dot(s10) + s11.T.dot(s00) % 2,
+                block_one, atol=atol, rtol=rtol) and
+                np.allclose(s01.T.dot(s11) + s11.T.dot(s01) % 2,
+                block_zero, atol=atol, rtol=rtol))
 
     def to_matrix(self):
         """Convert operator to Numpy matrix."""
@@ -163,31 +182,27 @@ class Clifford(BaseOperator):
 
     def conjugate(self):
         """Return the conjugate of the Clifford."""
-        # x = self.table.X
-        # z = self.table.Z
-        # ret = self.copy()
-        # ret.table.phase = self.table.phase ^ (np.sum(x & z, axis=1) % 2)
-        # return ret
-
-        # TODO: IMPLEMENT ME!
-
-        raise NotImplementedError(
-            'This method has not been implemented for Clifford operators yet.')
+        # TODO: Needs testing to see if correct
+        x = self.table.X
+        z = self.table.Z
+        ret = self.copy()
+        ret.table.phase = self.table.phase ^ (np.sum(x & z, axis=1) % 2)
+        return ret
 
     def transpose(self):
         """Return the transpose of the Clifford."""
 
-        # nq = self.n_qubits
-        # seye = _symeye(nq)
-        # ret = self.copy()
-        # ret.table._array = (np.dot(seye,np.dot(
-        #    np.transpose(ret.table._array),seye))%2).astype(bool)
-        # return ret
+        # TODO: Needs testing to see if correct
+        # This is done using block matrix multiplication
+        # [[0, 1], [1, 0]] * table.T * [[0, 1], [1, 0]]
 
-        # TODO: IMPLEMENT ME!
-
-        raise NotImplementedError(
-            'This method has not been implemented for Clifford operators yet.')
+        ret = self.copy()
+        tmp = ret.destabilizer.X.copy()
+        ret.destabilizer.X = ret.stabilizer.Z
+        ret.destabilizer.Z = ret.destabilizer.Z.T
+        ret.stabilizer.X = ret.stabilizer.X.T
+        ret.stabilizer.Z = tmp
+        return ret
 
     def compose(self, other, qargs=None, front=False):
         """Return the composed operator.
@@ -256,9 +271,6 @@ class Clifford(BaseOperator):
         Returns:
             Clifford: the tensor product operator self ⊗ other.
         """
-        if not isinstance(other, Clifford):
-            other = Clifford(other)
-
         return self._tensor_product(other, reverse=False)
 
     def expand(self, other):
@@ -271,12 +283,6 @@ class Clifford(BaseOperator):
             Clifford: the tensor product operator other ⊗ self.
         """
         return self._tensor_product(other, reverse=True)
-
-    def reset(self):
-        """Resets the Clifford object to the identity gate on nqubits
-            """
-        self.table._array = np.eye(len(self.table._array), dtype=np.bool)
-        self.table._phase = np.zeros(len(self.table._phase), dtype=np.bool)
 
     # ---------------------------------------------------------------------
     # Representation conversions
@@ -326,7 +332,6 @@ class Clifford(BaseOperator):
     # ---------------------------------------------------------------------
     # Internal tensor produce
     # ---------------------------------------------------------------------
-
     def _tensor_product(self, other, reverse=False):
         """Return the tensor product operator.
 
@@ -340,52 +345,31 @@ class Clifford(BaseOperator):
         Raises:
             QiskitError: if other cannot be converted into an Clifford.
         """
-
-        stabilizers = []
-        destabilizers = []
+        if not isinstance(other, Clifford):
+            other = Clifford(other)
 
         if reverse:
-            front = other
-            back = self
+            first = other
+            second = self
         else:
-            front = self
-            back = other
-        If = front.n_qubits*'I'
-        Ib = back.n_qubits*'I'
+            first = self
+            second = other
+        n_first = first.n_qubits
+        n_second = second.n_qubits
 
-        dictf = front.to_dict()
-        stabilizersf = dictf['stabilizer']
-        for s in stabilizersf:
-            stabilizers.append(s+Ib)
-        destabilizersf = dictf['destabilizer']
-        for d in destabilizersf:
-            destabilizers.append(d+Ib)
+        # Pad stabilizers and destabilizers
+        destab = (first.destabilizer.tensor(n_second * 'I') +
+                  second.destabilizer.expand(n_first * 'I'))
+        stab = (first.stabilizer.tensor(n_second * 'I') +
+                second.stabilizer.expand(n_first * 'I'))
 
-        dictb = back.to_dict()
-        stabilizersb = dictb['stabilizer']
-        for s in stabilizersb:
-            if s[0] == '+' or s[0] == '-':
-                stabilizers.append(s[0]+If+s[1:])
-            else:
-                stabilizers.append(If + s)
-        destabilizersb = dictb['destabilizer']
-        for d in destabilizersb:
-            if d[0] == '+' or d[0] == '-':
-                destabilizers.append(d[0]+If+d[1:])
-            else:
-                destabilizers.append(If + d)
-        return self.from_dict({"destabilizer": destabilizers, "stabilizer": stabilizers})
+        # Add the padded table
+        table = destab + stab
+        return Clifford(table)
 
     # ---------------------------------------------------------------------
     # Internal composition methods
     # ---------------------------------------------------------------------
-
-    @staticmethod
-    def _symeye(n_qubits):
-        """Return block matrix [[0, 1], [1, 0]]"""
-        zero = np.zeros([n_qubits, n_qubits], dtype=np.bool)
-        one = np.eye(n_qubits, dtype=np.bool)
-        return np.block([[zero, one], [one, zero]])
 
     def _compose_subsystem(self, other, qargs, front=False):
         """Return the composition channel."""
