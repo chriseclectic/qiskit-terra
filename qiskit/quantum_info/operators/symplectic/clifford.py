@@ -224,10 +224,11 @@ class Clifford(BaseOperator):
         # Clifford object can't be changed by composition
         self._get_compose_dims(other, qargs, front)
 
-        if qargs is None:
-            return self._compose_clifford(other, front)
-        else:
-            return self._compose_subsystem(other, qargs, front=False)
+        if qargs is None or (
+                len(qargs) == self.n_qubits and sorted(qargs) == qargs):
+            return self._compose_clifford(other, front=front)
+
+        return self._compose_subsystem(other, qargs, front=front)
 
     def dot(self, other, qargs=None):
         """Return the right multiplied operator self * other.
@@ -355,18 +356,15 @@ class Clifford(BaseOperator):
     # ---------------------------------------------------------------------
     # Internal composition methods
     # ---------------------------------------------------------------------
-
     def _compose_subsystem(self, other, qargs, front=False):
         """Return the composition channel."""
         # Create Clifford on full system from subsystem and compose
         nq = self.n_qubits
         no = other.n_qubits
         fullother = self.copy()
-        fullother.reset()
-        for inda, qubita in enumerate(qargs):
-            qinda = qubita.index
-            for indb, qubitb in enumerate(qargs):
-                qindb = qubitb.index
+        fullother.table.array = np.eye(2 * self.n_qubits, dtype=np.bool)
+        for inda, qinda in enumerate(qargs):
+            for indb, qindb in enumerate(qargs):
                 fullother.table._array[nq - 1 - qinda, nq - 1 - qindb] = other.table._array[
                     no - 1 - inda, no - 1 - indb]
                 fullother.table._array[nq - 1 - qinda, 2*nq - 1 - qindb] = other.table._array[
@@ -377,43 +375,46 @@ class Clifford(BaseOperator):
                     2*no - 1 - inda, 2*no - 1 - indb]
                 fullother.table._phase[nq - 1 - qinda] = other.table._phase[no - 1 - inda]
                 fullother.table._phase[2*nq - 1 - qinda] = other.table._phase[2*no - 1 - inda]
-        return self._compose_clifford(fullother, front)
+        return self._compose_clifford(fullother, front=front)
 
     def _compose_clifford(self, other, front=False):
         """Return the composition channel assume other is Clifford of same size as self."""
         if front:
-            clifffront = self
-            cliffback = other
+            table1 = self.table
+            table2 = other.table
         else:
-            clifffront = other
-            cliffback = self
-        output = cliffback.copy()
+            table1 = other.table
+            table2 = self.table
+        ret_table = table2.copy()
 
-        farray = clifffront.table._array
-        barray = cliffback.table._array
-        oarray = output.table._array
-        fphase = clifffront.table._phase
-        ophase = output.table._phase
-        # Zero the array, leave the phases in place
-        oarray *= False
-        for oind, orow in enumerate(oarray):
-            for find, frow in enumerate(farray):
-                if barray[oind][find]:
-                    # Edit the row in place, return the phase
-                    ophase[oind] = self._rowsum_AG(orow, frow, ophase[oind] ^ fphase[find])
+        # Zero the return array, leave the phases in place
+        ret_table.array *= False
+        for i in range(ret_table.size):
+            for j in range(table1.size):
+                if table2.array[i, j]:
+                    ret_table[i] = self._rowsum(ret_table[i], table1[j])
 
-        return output
+        # Pauli table can be directly updated as follows:
+        # pauli = StabilizerTable(np.dot(
+        #     table2.array.astype(int),
+        #     table1.array.astype(int)) % 2)
+        # Note sure how to update phases without doing rowsum though
 
-    def _rowsum_AG(self, orow, frow, phase):
-        # I've never understood rowsum, here's an easier way
-        nq = len(orow)//2
-        for ind in range(nq):
-            phase = phase ^ self._g_AG(orow[ind], orow[nq+ind], frow[ind], frow[nq+ind])
-        np.logical_xor(orow, frow, out=orow)
+        return Clifford(ret_table)
 
-        return phase
+    @staticmethod
+    def _rowsum(row1, row2):
+        """Rowsum from AG paper"""
+        x1, z1 = row1.X, row1.Z
+        x2, z2 = row2.X, row2.Z
 
-    def _g_AG(self, x1, z1, x2, z2):
-        return ((not x1 and z1 and x2 and not z2)
-                or (x1 and not z1 and x2 and z2)
-                or (x1 and z1 and not x2 and z2))
+        # Phase update (g function in AG paper)
+        phase = row1.phase ^ row2.phase ^ np.array(
+            np.sum((~x1 & z1 & x2 & ~z2) |
+                   (x1 & ~z1 & x2 & z2) |
+                   (x1 & z1 & ~x2 & z2), axis=1) % 2, dtype=np.bool)
+
+        # Pauli update
+        pauli = row1.array ^ row2.array
+
+        return StabilizerTable(pauli, phase)
