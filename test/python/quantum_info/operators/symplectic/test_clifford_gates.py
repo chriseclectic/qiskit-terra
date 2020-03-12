@@ -20,7 +20,9 @@ import unittest
 import numpy as np
 
 from qiskit.test import QiskitTestCase
-from qiskit.quantum_info.operators.symplectic import Clifford, append_gate
+from qiskit.quantum_info.operators.symplectic import Clifford
+from qiskit.quantum_info.operators.symplectic.clifford_append_gate import append_gate
+
 
 class TestCliffordGates(QiskitTestCase):
     """Tests for clifford append gate functions."""
@@ -29,7 +31,7 @@ class TestCliffordGates(QiskitTestCase):
         "Tests for append of 1-qubit gates"
 
         target_table = {
-            "i" : np.array([[[True, False], [False, True]]], dtype=np.bool),
+            "i": np.array([[[True, False], [False, True]]], dtype=np.bool),
             "id": np.array([[[True, False], [False, True]]], dtype=np.bool),
             "iden": np.array([[[True, False], [False, True]]], dtype=np.bool),
             "x": np.array([[[True, False], [False, True]]], dtype=np.bool),
@@ -91,7 +93,7 @@ class TestCliffordGates(QiskitTestCase):
 
         for gate_name in ("i", "id", "iden", "x", "y", "z", "h",
                           "s", "sdg", "v", "w"):
-            with self.subTest(msg='append gate %s'%gate_name):
+            with self.subTest(msg='append gate %s' % gate_name):
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff = append_gate(cliff, gate_name, [0])
                 value_table = cliff.table._array
@@ -111,7 +113,7 @@ class TestCliffordGates(QiskitTestCase):
         "Tests identity relations for 1-qubit gates"
 
         for gate_name in ("x", "y", "z", "h"):
-            with self.subTest(msg='identity for gate %s'%gate_name):
+            with self.subTest(msg='identity for gate %s' % gate_name):
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff1 = cliff.copy()
                 cliff = append_gate(cliff, gate_name, [0])
@@ -137,7 +139,7 @@ class TestCliffordGates(QiskitTestCase):
                 'sdg * h = v', 'h * s = w']
 
         for rel in rels:
-            with self.subTest(msg='relation %s'%rel):
+            with self.subTest(msg='relation %s' % rel):
                 split_rel = rel.split()
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff1 = cliff.copy()
@@ -221,7 +223,7 @@ class TestCliffordGates(QiskitTestCase):
 
         for gate_name in ("cx", "cz", "swap"):
             for qubits in ([0, 1], [1, 0]):
-                with self.subTest(msg='append gate %s %s'%(
+                with self.subTest(msg='append gate %s %s' % (
                         gate_name, qubits)):
                     gate_qubits = gate_name + " " + str(qubits)
                     cliff = Clifford(np.eye(4))
@@ -244,7 +246,7 @@ class TestCliffordGates(QiskitTestCase):
 
         for gate_name in ("cx", "cz", "swap"):
             for qubits in ([0, 1], [1, 0]):
-                with self.subTest(msg='append gate %s %s'%(
+                with self.subTest(msg='append gate %s %s' % (
                         gate_name, qubits)):
                     cliff = Clifford(np.eye(4))
                     cliff1 = cliff.copy()
@@ -303,6 +305,7 @@ class TestCliffordGates(QiskitTestCase):
             cliff = append_gate(cliff, 'cx', [1, 0])
             cliff = append_gate(cliff, 'sdg', [0])
             self.assertEqual(cliff, cliff1)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -20,4 +20,3 @@ from .pauli_table import PauliTable
 from .pauli_utils import pauli_basis
 from .stabilizer_table import StabilizerTable
 from .clifford import Clifford
-from .clifford_append_gate import append_gate
