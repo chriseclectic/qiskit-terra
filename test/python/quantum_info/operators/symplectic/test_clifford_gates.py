@@ -55,8 +55,8 @@ class TestCliffordGates(QiskitTestCase):
             "s": np.array([[False, False]], dtype=np.bool),
             "sdg": np.array([[True, False]], dtype=np.bool),
             "sinv": np.array([[True, False]], dtype=np.bool),
-            "v": np.array([[False, True]], dtype=np.bool),
-            "w": np.array([[True, True]], dtype=np.bool)
+            "v": np.array([[False, False]], dtype=np.bool),
+            "w": np.array([[False, False]], dtype=np.bool)
         }
 
         target_stabilizer = {
@@ -70,8 +70,8 @@ class TestCliffordGates(QiskitTestCase):
             "s": "+Z",
             "sdg": "+Z",
             "sinv": "+Z",
-            "v": "-X",
-            "w": "-Y",
+            "v": "+X",
+            "w": "+Y",
         }
 
         target_destabilizer = {
@@ -86,7 +86,7 @@ class TestCliffordGates(QiskitTestCase):
             "sdg": "-Y",
             "sinv": "-Y",
             "v": "+Y",
-            "w": "-Z",
+            "w": "+Z",
         }
 
         for gate_name in ("i", "id", "iden", "x", "y", "z", "h",
@@ -109,6 +109,7 @@ class TestCliffordGates(QiskitTestCase):
 
     def test_1_qubit_identity_relations(self):
         "Tests identity relations for 1-qubit gates"
+
         for gate_name in ("x", "y", "z", "h"):
             with self.subTest(msg='identity for gate %s'%gate_name):
                 cliff = Clifford([[1, 0], [0, 1]])
@@ -117,110 +118,52 @@ class TestCliffordGates(QiskitTestCase):
                 cliff = append_gate(cliff, gate_name, [0])
                 self.assertEqual(cliff, cliff1)
 
-        with self.subTest(msg='identity for gate s'):
-            cliff = Clifford([[1, 0], [0, 1]])
-            cliff1 = cliff.copy()
-            cliff1 = append_gate(cliff1, 's', [0])
-            cliff2 = cliff1.copy()
-            cliff1 = append_gate(cliff1, 'sdg', [0])
-            cliff2 = append_gate(cliff2, 'sinv', [0])
-            self.assertEqual(cliff, cliff1)
-            self.assertEqual(cliff, cliff2)
+        gates = ['s', 's', 'v']
+        inv_gates = ['sdg', 'sinv', 'w']
 
-        with self.subTest(msg='identity for gate v'):
-            cliff = Clifford([[1, 0], [0, 1]])
-            cliff1 = cliff.copy()
-            cliff = append_gate(cliff, 'v', [0])
-            cliff = append_gate(cliff, 'w', [0])
-            print ('vw=i:', cliff, " vs ", cliff1)
-            #self.assertEqual(cliff, cliff1)
+        for gate_name, inv_gate in zip(gates, inv_gates):
+            with self.subTest(msg='identity for gate %s' % gate_name):
+                cliff = Clifford([[1, 0], [0, 1]])
+                cliff1 = cliff.copy()
+                cliff = append_gate(cliff, gate_name, [0])
+                cliff = append_gate(cliff, inv_gate, [0])
+                self.assertEqual(cliff, cliff1)
 
-    def test_1_qubit_commute_relations(self):
-        "Tests commutativity relations for 1-qubit gates"
-        with self.subTest(msg='identity x*y=z'):
-            cliff = Clifford([[1, 0], [0, 1]])
-            cliff1 = cliff.copy()
-            cliff = append_gate(cliff, 'x', [0])
-            cliff = append_gate(cliff, 'y', [0])
-            cliff1 = append_gate(cliff1, 'z', [0])
-            self.assertEqual(cliff, cliff1)
+    def test_1_qubit_mult_relations(self):
+        "Tests multiplicity relations for 1-qubit gates"
 
-        with self.subTest(msg='identity x*z=y'):
-            cliff = Clifford([[1, 0], [0, 1]])
-            cliff1 = cliff.copy()
-            cliff = append_gate(cliff, 'x', [0])
-            cliff = append_gate(cliff, 'z', [0])
-            cliff1 = append_gate(cliff1, 'y', [0])
-            self.assertEqual(cliff, cliff1)
+        rels = ['x * y = z', 'x * z = y', 'y * z = x',
+                's * s = z', 'sdg * sdg = z', 'sinv * sinv = z',
+                'sdg * h = v', 'h * s = w']
 
-        with self.subTest(msg='identity y*z=x'):
-            cliff = Clifford([[1, 0], [0, 1]])
-            cliff1 = cliff.copy()
-            cliff = append_gate(cliff, 'y', [0])
-            cliff = append_gate(cliff, 'z', [0])
-            cliff1 = append_gate(cliff1, 'x', [0])
-            self.assertEqual(cliff, cliff1)
+        for rel in rels:
+            with self.subTest(msg='relation %s'%rel):
+                split_rel = rel.split()
+                cliff = Clifford([[1, 0], [0, 1]])
+                cliff1 = cliff.copy()
+                cliff = append_gate(cliff, split_rel[0], [0])
+                cliff = append_gate(cliff, split_rel[2], [0])
+                cliff1 = append_gate(cliff1, split_rel[4], [0])
+                self.assertEqual(cliff, cliff1)
 
-        with self.subTest(msg='identity h*x*h=z'):
-            cliff = Clifford([[1, 0], [0, 1]])
-            cliff1 = cliff.copy()
-            cliff = append_gate(cliff, 'h', [0])
-            cliff = append_gate(cliff, 'x', [0])
-            cliff = append_gate(cliff, 'h', [0])
-            cliff1 = append_gate(cliff1, 'z', [0])
-            self.assertEqual(cliff, cliff1)
+    def test_1_qubit_conj_relations(self):
+        "Tests conjugation relations for 1-qubit gates"
 
-        with self.subTest(msg='identity h*y*h=z'):
-            cliff = Clifford([[1, 0], [0, 1]])
-            cliff1 = cliff.copy()
-            cliff = append_gate(cliff, 'h', [0])
-            cliff = append_gate(cliff, 'y', [0])
-            cliff = append_gate(cliff, 'h', [0])
-            cliff1 = append_gate(cliff1, 'y', [0])
-            self.assertEqual(cliff, cliff1)
+        rels = ['h * x * h = z', 'h * y * h = y',
+                's * x * sdg = y', 'w * x * v = y',
+                'w * y * v = z', 'w * z * v = x']
 
-        with self.subTest(msg='identity s*s=z'):
-            cliff = Clifford([[1, 0], [0, 1]])
-            cliff1 = cliff.copy()
-            cliff = append_gate(cliff, 's', [0])
-            cliff = append_gate(cliff, 's', [0])
-            cliff1 = append_gate(cliff1, 'z', [0])
-            self.assertEqual(cliff, cliff1)
+        for rel in rels:
+            with self.subTest(msg='relation %s' % rel):
+                split_rel = rel.split()
+                cliff = Clifford([[1, 0], [0, 1]])
+                cliff1 = cliff.copy()
+                cliff = append_gate(cliff, split_rel[0], [0])
+                cliff = append_gate(cliff, split_rel[2], [0])
+                cliff = append_gate(cliff, split_rel[4], [0])
+                cliff1 = append_gate(cliff1, split_rel[6], [0])
+                self.assertEqual(cliff, cliff1)
 
-        with self.subTest(msg='identity sdg*sdg=z'):
-            cliff = Clifford([[1, 0], [0, 1]])
-            cliff1 = cliff.copy()
-            cliff = append_gate(cliff, 'sdg', [0])
-            cliff = append_gate(cliff, 'sdg', [0])
-            cliff1 = append_gate(cliff1, 'z', [0])
-            self.assertEqual(cliff, cliff1)
-
-        with self.subTest(msg='identity s*x*sdg=y'):
-            cliff = Clifford([[1, 0], [0, 1]])
-            cliff1 = cliff.copy()
-            cliff = append_gate(cliff, 's', [0])
-            cliff = append_gate(cliff, 'x', [0])
-            cliff = append_gate(cliff, 'sdg', [0])
-            cliff1 = append_gate(cliff1, 'y', [0])
-            self.assertEqual(cliff, cliff1)
-
-        with self.subTest(msg='identity sdg*h=v'):
-            cliff = Clifford([[1, 0], [0, 1]])
-            cliff1 = cliff.copy()
-            cliff = append_gate(cliff, 'sdg', [0])
-            cliff = append_gate(cliff, 'h', [0])
-            cliff1 = append_gate(cliff1, 'v', [0])
-            print ('sdg*h=v:', cliff, " vs ", cliff1)
-            #self.assertEqual(cliff, cliff1)
-
-        with self.subTest(msg='identity h*s=w'):
-            cliff = Clifford([[1, 0], [0, 1]])
-            cliff1 = cliff.copy()
-            cliff = append_gate(cliff, 'h', [0])
-            cliff = append_gate(cliff, 's', [0])
-            cliff1 = append_gate(cliff1, 'w', [0])
-            print ('h*s=w:', cliff, " vs ", cliff1)
-            #self.assertEqual(cliff, cliff1)
 
 if __name__ == '__main__':
     unittest.main()
