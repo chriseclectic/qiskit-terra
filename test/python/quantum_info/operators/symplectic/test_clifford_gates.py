@@ -17,11 +17,77 @@
 """Tests for clifford append gate functions."""
 
 import unittest
+from test import combine
+from ddt import ddt
+
 import numpy as np
 
 from qiskit.test import QiskitTestCase
-from qiskit.quantum_info.operators.symplectic import Clifford
+from qiskit.circuit import Gate, QuantumRegister, QuantumCircuit
+from qiskit.extensions.standard import (IGate, XGate, YGate, ZGate,
+                                        HGate, SGate, SdgGate,
+                                        CXGate, CZGate, SwapGate)
+from qiskit.quantum_info.operators import Clifford, Operator
 from qiskit.quantum_info.operators.symplectic.clifford_append_gate import append_gate
+
+
+class VGate(Gate):
+    """V Gate used in Clifford synthesis."""
+
+    def __init__(self):
+        """Create new V Gate."""
+        super().__init__('v', 1, [])
+
+    def _define(self):
+        """V Gate definition."""
+        q = QuantumRegister(1, 'q')
+        self.definition = [(SdgGate(), [q[0]], []), (HGate(), [q[0]], [])]
+
+
+class WGate(Gate):
+    """W Gate used in Clifford synthesis."""
+
+    def __init__(self):
+        """Create new W Gate."""
+        super().__init__('w', 1, [])
+
+    def _define(self):
+        """W Gate definition."""
+        q = QuantumRegister(1, 'q')
+        self.definition = [(VGate(), [q[0]], []), (VGate(), [q[0]], [])]
+
+
+def random_clifford_circuit(num_qubits, num_gates, gates='all', seed=None):
+    """Generate a pseudo random Clifford circuit."""
+    if gates == 'all':
+        gates = ['i', 'x', 'y', 'z', 'h', 's', 'sdg', 'v', 'w', 'cx', 'cz', 'swap']
+
+    instructions = {
+        'i': (IGate(), 1),
+        'x': (XGate(), 1),
+        'y': (YGate(), 1),
+        'z': (ZGate(), 1),
+        'h': (HGate(), 1),
+        's': (SGate(), 1),
+        'sdg': (SdgGate(), 1),
+        'v': (VGate(), 1),
+        'w': (WGate(), 1),
+        'cx': (CXGate(), 2),
+        'cz': (CZGate(), 2),
+        'swap': (SwapGate(), 2)
+    }
+
+    rng = np.random.RandomState(seed=seed)
+    samples = rng.choice(gates, num_gates)
+
+    circ = QuantumCircuit(num_qubits)
+
+    for name in samples:
+        gate, nqargs = instructions[name]
+        qargs = rng.choice(range(num_qubits), nqargs, replace=False).tolist()
+        circ.append(gate, qargs)
+
+    return circ
 
 
 class TestCliffordGates(QiskitTestCase):
@@ -305,6 +371,54 @@ class TestCliffordGates(QiskitTestCase):
             cliff = append_gate(cliff, 'cx', [1, 0])
             cliff = append_gate(cliff, 'sdg', [0])
             self.assertEqual(cliff, cliff1)
+
+
+@ddt
+class TestCliffordCircuits(QiskitTestCase):
+    """Stress tests for random clifford  circuits."""
+
+    @combine(gates=[['h', 's'],
+                    ['h', 's', 'i', 'x', 'y', 'z'],
+                    ['h', 's', 'sdg'],
+                    ['h', 's', 'v'],
+                    ['h', 's', 'w'],
+                    ['h', 's', 'sdg', 'i', 'x', 'y', 'z', 'v', 'w']])
+    def test_to_operator_1qubit_gates(self, gates):
+        """Test 1-qubit circuit with gates {gates}"""
+        samples = 10
+        num_gates = 10
+        seed = 100
+        for i in range(samples):
+            circ = random_clifford_circuit(1, num_gates, gates=gates, seed=seed + i)
+            value = Clifford(circ).to_operator()
+            target = Operator(circ)
+            self.assertTrue(target.equiv(value))
+
+    @combine(gates=[['cx'], ['cz'], ['swap'], ['cx', 'cz'],
+                    ['cx', 'swap'], ['cz', 'swap'], ['cx', 'cz', 'swap']])
+    def test_to_operator_2qubit_gates(self, gates):
+        """Test 2-qubit circuit with gates {gates}"""
+        samples = 10
+        num_gates = 10
+        seed = 200
+        for i in range(samples):
+            circ = random_clifford_circuit(2, num_gates, gates=gates, seed=seed + i)
+            value = Clifford(circ).to_operator()
+            target = Operator(circ)
+            self.assertTrue(target.equiv(value))
+
+    @combine(gates=[['h', 's', 'cx'], ['h', 's', 'cz'], ['h', 's', 'swap'], 'all'],
+             num_qubits=[2, 3, 4])
+    def test_to_operator_nqubit_gates(self, gates, num_qubits):
+        """Test {num_qubits}-qubit circuit with gates {gates}"""
+        samples = 10
+        num_gates = 20
+        seed = 300
+        for i in range(samples):
+            circ = random_clifford_circuit(num_qubits, num_gates, gates=gates, seed=seed + i)
+            value = Clifford(circ).to_operator()
+            target = Operator(circ)
+            self.assertTrue(target.equiv(value))
 
 
 if __name__ == '__main__':
