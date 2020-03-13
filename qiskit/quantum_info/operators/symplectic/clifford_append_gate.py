@@ -214,7 +214,6 @@ def append_v(clifford, qubit):
     """
     x = clifford.table.X[:, qubit]
     z = clifford.table.Z[:, qubit]
-    clifford.table.phase ^= False
     tmp = x.copy()
     x ^= z
     z[:] = tmp
@@ -235,7 +234,6 @@ def append_w(clifford, qubit):
     """
     x = clifford.table.X[:, qubit]
     z = clifford.table.Z[:, qubit]
-    clifford.table.phase ^= False
     tmp = z.copy()
     z ^= x
     x[:] = tmp
@@ -278,7 +276,7 @@ def append_cz(clifford, control, target):
     z0 = clifford.table.Z[:, control]
     x1 = clifford.table.X[:, target]
     z1 = clifford.table.Z[:, target]
-    clifford.table.phase ^= (z1 ^ z0 ^ True) & x1 & x0
+    clifford.table.phase ^= x0 & x1 & (z0 ^ z1)
     z1 ^= x0
     z0 ^= x1
     return clifford
