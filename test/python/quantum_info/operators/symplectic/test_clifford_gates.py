@@ -447,9 +447,9 @@ class TestCliffordOperators(QiskitTestCase):
     def test_transpose(self):
         "Test transpose method"
         samples = 10
-        num_gates = 1
-        seed = 400
-        for num_qubits in [1, 2, 3]:
+        num_gates = 1 #10
+        seed = 500
+        for num_qubits in [1]: #[1, 2, 3]:
             if num_qubits == 1:
                 gates = '1-qubit'
             else:
@@ -460,11 +460,39 @@ class TestCliffordOperators(QiskitTestCase):
                 target = np.array(UnitaryGate(Clifford(circ).to_operator()).transpose()
                                   .to_matrix()).flatten()
                 ratio = target[np.nonzero(target)] / value[np.nonzero(value)]
-                print(circ)
+                ##print(circ)
+                ##print(value)
+                ##print(target)
+                ##print(ratio)
+                #self.assertTrue(np.all(ratio == ratio[0]))
+
+    def test_compose_dot(self):
+        "Test compose and dot methods"
+        samples = 10
+        num_gates = 2 #10
+        seed = 600
+        for num_qubits in [1, 2, 3]:
+            if num_qubits == 1:
+                gates = '1-qubit'
+            else:
+                gates = 'all'
+            for i in range(samples):
+                circ1 = random_clifford_circuit(num_qubits, num_gates, gates=gates, seed=seed + i)
+                cliff1 = Clifford(circ1)
+                print(circ1)
+                circ2 = random_clifford_circuit(num_qubits, num_gates, gates=gates, seed=seed + samples + i)
+                cliff2 = Clifford(circ2)
+                #circ = circ1.extend(circ2)
+                circ = circ2.extend(circ1)
+                print (circ2)
+                print (circ)
+                #value = cliff2.dot(cliff1)
+                value = cliff2.compose(cliff1)
+                target = Clifford(circ)
                 print(value)
                 print(target)
-                print(ratio)
-                self.assertTrue(np.all(ratio == ratio[0]))
+                print ("-----------------")
+                self.assertTrue(value == target)
 
 if __name__ == '__main__':
     unittest.main()
