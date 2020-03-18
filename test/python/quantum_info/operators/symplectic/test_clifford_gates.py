@@ -516,6 +516,48 @@ class TestCliffordOperators(QiskitTestCase):
             target = Clifford(circ2.extend(circ1))
             self.assertEqual(target, value)
 
+    @combine(num_qubits_1=[1,2,3], num_qubits_2=[1,2,3])
+    def test_tensor_method(self, num_qubits_1, num_qubits_2):
+        "Test tensor method"
+        samples = 5
+        num_gates = 10
+        seed = 800
+        gates = 'all'
+        for i in range(samples):
+            circ1 = random_clifford_circuit(
+                num_qubits_1, num_gates, gates=gates, seed=seed + i)
+            circ2 = random_clifford_circuit(
+                num_qubits_2, num_gates, gates=gates, seed=seed + samples + i)
+            cliff1 = Clifford(circ1)
+            cliff2 = Clifford(circ2)
+            value = cliff1.tensor(cliff2)
+            circ = QuantumCircuit(num_qubits_1 + num_qubits_2)
+            circ.append(circ1, range(num_qubits_1))
+            circ.append(circ2, range(num_qubits_1, num_qubits_1 + num_qubits_2))
+            target = Clifford(circ)
+            self.assertEqual(target, value)
+
+    @combine(num_qubits_1=[1,2,3], num_qubits_2=[1,2,3])
+    def test_expand_method(self, num_qubits_1, num_qubits_2):
+        "Test expand method"
+        samples = 5
+        num_gates = 10
+        seed = 800
+        gates = 'all'
+        for i in range(samples):
+            circ1 = random_clifford_circuit(
+                num_qubits_1, num_gates, gates=gates, seed=seed + i)
+            circ2 = random_clifford_circuit(
+                num_qubits_2, num_gates, gates=gates, seed=seed + samples + i)
+            cliff1 = Clifford(circ1)
+            cliff2 = Clifford(circ2)
+            value = cliff1.expand(cliff2)
+            circ = QuantumCircuit(num_qubits_1 + num_qubits_2)
+            circ.append(circ2, range(num_qubits_2))
+            circ.append(circ1, range(num_qubits_2, num_qubits_1 + num_qubits_2))
+            target = Clifford(circ)
+            self.assertEqual(target, value)
+
 
 if __name__ == '__main__':
     unittest.main()
