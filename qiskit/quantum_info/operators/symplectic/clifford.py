@@ -15,9 +15,8 @@ from qiskit.circuit import QuantumCircuit, Instruction
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
-from qiskit.quantum_info.operators.symplectic.stabilizer_table import StabilizerTable
-from qiskit.quantum_info.operators.symplectic.clifford_append_gate import (append_gate,
-                                                                           decompose_clifford)
+from .stabilizer_table import StabilizerTable
+from .clifford_circuits import append_gate, decompose_clifford
 
 
 class Clifford(BaseOperator):

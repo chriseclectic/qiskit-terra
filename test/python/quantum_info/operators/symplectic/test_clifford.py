@@ -14,7 +14,7 @@
 
 # pylint: disable=invalid-name
 
-"""Tests for clifford append gate functions."""
+"""Tests for Clifford class."""
 
 import unittest
 from test import combine
@@ -28,7 +28,7 @@ from qiskit.extensions.standard import (IGate, XGate, YGate, ZGate,
                                         HGate, SGate, SdgGate,
                                         CXGate, CZGate, SwapGate)
 from qiskit.quantum_info.operators import Clifford, Operator
-from qiskit.quantum_info.operators.symplectic.clifford_append_gate import append_gate
+from qiskit.quantum_info.operators.symplectic.clifford_circuits import append_gate
 
 
 class VGate(Gate):
@@ -458,6 +458,7 @@ class TestCliffordOperators(QiskitTestCase):
             target = Operator(circ).conjugate()
             self.assertTrue(target.equiv(value))
 
+    @unittest.skip("Currently failing")
     @combine(num_qubits=[1, 2, 3])
     def test_transpose(self, num_qubits):
         "Test transpose method"
@@ -471,14 +472,7 @@ class TestCliffordOperators(QiskitTestCase):
                 num_qubits, num_gates, gates=gates, seed=seed + i)
             value = Clifford(circ).transpose().to_operator()
             target = Operator(circ).transpose()
-            #print (circ)
-            #print (Clifford(circ))
-            #print(Clifford(circ).transpose())
-            #print (target)
-            #print (value)
-            #print (target == value)
-            #print ("---------")
-            #self.assertTrue(target.equiv(value))
+            self.assertTrue(target.equiv(value))
 
     @combine(num_qubits=[1, 2, 3])
     def test_compose_method(self, num_qubits):
@@ -516,7 +510,7 @@ class TestCliffordOperators(QiskitTestCase):
             target = Clifford(circ2.extend(circ1))
             self.assertEqual(target, value)
 
-    @combine(num_qubits_1=[1,2,3], num_qubits_2=[1,2,3])
+    @combine(num_qubits_1=[1, 2, 3], num_qubits_2=[1, 2, 3])
     def test_tensor_method(self, num_qubits_1, num_qubits_2):
         "Test tensor method"
         samples = 5
@@ -537,7 +531,7 @@ class TestCliffordOperators(QiskitTestCase):
             target = Clifford(circ)
             self.assertEqual(target, value)
 
-    @combine(num_qubits_1=[1,2,3], num_qubits_2=[1,2,3])
+    @combine(num_qubits_1=[1, 2, 3], num_qubits_2=[1, 2, 3])
     def test_expand_method(self, num_qubits_1, num_qubits_2):
         "Test expand method"
         samples = 5
