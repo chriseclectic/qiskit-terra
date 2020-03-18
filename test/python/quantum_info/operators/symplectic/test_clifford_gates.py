@@ -24,13 +24,11 @@ import numpy as np
 
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import Gate, QuantumRegister, QuantumCircuit
-from qiskit.extensions import UnitaryGate
 from qiskit.extensions.standard import (IGate, XGate, YGate, ZGate,
                                         HGate, SGate, SdgGate,
                                         CXGate, CZGate, SwapGate)
 from qiskit.quantum_info.operators import Clifford, Operator
-from qiskit.quantum_info.operators.symplectic.clifford_append_gate import append_gate, \
-    decompose_clifford
+from qiskit.quantum_info.operators.symplectic.clifford_append_gate import append_gate
 
 
 class VGate(Gate):
@@ -62,9 +60,10 @@ class WGate(Gate):
 def random_clifford_circuit(num_qubits, num_gates, gates='all', seed=None):
     """Generate a pseudo random Clifford circuit."""
     if gates == 'all':
-        gates = ['i', 'x', 'y', 'z', 'h', 's', 'sdg', 'v', 'w', 'cx', 'cz', 'swap']
-    if gates == '1-qubit':
-        gates = ['i', 'x', 'y', 'z', 'h', 's', 'sdg', 'v', 'w']
+        if num_qubits == 1:
+            gates = ['i', 'x', 'y', 'z', 'h', 's', 'sdg', 'v', 'w']
+        else:
+            gates = ['i', 'x', 'y', 'z', 'h', 's', 'sdg', 'v', 'w', 'cx', 'cz', 'swap']
 
     instructions = {
         'i': (IGate(), 1),
@@ -434,10 +433,7 @@ class TestCliffordOperators(QiskitTestCase):
         samples = 10
         num_gates = 10
         seed = 700
-        if num_qubits == 1:
-            gates = '1-qubit'
-        else:
-            gates = 'all'
+        gates = 'all'
         for i in range(samples):
             circ = random_clifford_circuit(
                 num_qubits, num_gates, gates=gates, seed=seed + i)
@@ -454,10 +450,7 @@ class TestCliffordOperators(QiskitTestCase):
         samples = 10
         num_gates = 10
         seed = 400
-        if num_qubits == 1:
-            gates = '1-qubit'
-        else:
-            gates = 'all'
+        gates = 'all'
         for i in range(samples):
             circ = random_clifford_circuit(
                 num_qubits, num_gates, gates=gates, seed=seed + i)
@@ -472,10 +465,7 @@ class TestCliffordOperators(QiskitTestCase):
         samples = 10
         num_gates = 1
         seed = 500
-        if num_qubits == 1:
-            gates = '1-qubit'
-        else:
-            gates = 'all'
+        gates = 'all'
         for i in range(samples):
             circ = random_clifford_circuit(
                 num_qubits, num_gates, gates=gates, seed=seed + i)
@@ -496,10 +486,7 @@ class TestCliffordOperators(QiskitTestCase):
         samples = 10
         num_gates = 10
         seed = 600
-        if num_qubits == 1:
-            gates = '1-qubit'
-        else:
-            gates = 'all'
+        gates = 'all'
         for i in range(samples):
             circ1 = random_clifford_circuit(
                 num_qubits, num_gates, gates=gates, seed=seed + i)
@@ -517,10 +504,7 @@ class TestCliffordOperators(QiskitTestCase):
         samples = 10
         num_gates = 10
         seed = 600
-        if num_qubits == 1:
-            gates = '1-qubit'
-        else:
-            gates = 'all'
+        gates = 'all'
         for i in range(samples):
             circ1 = random_clifford_circuit(
                 num_qubits, num_gates, gates=gates, seed=seed + i)
