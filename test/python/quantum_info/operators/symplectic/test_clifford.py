@@ -29,6 +29,7 @@ from qiskit.extensions.standard import (IGate, XGate, YGate, ZGate,
                                         CXGate, CZGate, SwapGate)
 from qiskit.quantum_info.operators import Clifford, Operator
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import append_gate
+from qiskit.quantum_info.operators.symplectic.clifford_utils import random_clifford
 
 
 class VGate(Gate):
@@ -552,6 +553,16 @@ class TestCliffordOperators(QiskitTestCase):
             target = Clifford(circ)
             self.assertEqual(target, value)
 
+    @combine(num_qubits=range(1, 10))
+    def test_random_clifford(self, num_qubits):
+        "Test random_clifford function"
+        samples = 5
+        seed = 900
+        gates = 'all'
+        for i in range(samples):
+            cliff = random_clifford(num_qubits, seed=seed)
+            value = cliff.is_unitary()
+            self.assertTrue(value)
 
 if __name__ == '__main__':
     unittest.main()
