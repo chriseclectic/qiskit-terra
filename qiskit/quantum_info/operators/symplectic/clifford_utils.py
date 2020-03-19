@@ -14,48 +14,66 @@
 
 # pylint: disable=invalid-name
 
+from random import Random
 import numpy as np
-import random
 
-from qiskit.quantum_info.operators import Clifford
-import qiskit.quantum_info.operators.symplectic.symplectic_utils as symp_utils
+from .clifford import Clifford
+from .stabilizer_table import StabilizerTable
+from .symplectic_utils import symplectic
 
-# ---------------------------------------------------------------------
-# Random Clifford Circuit
-# From "How to efficiently select an arbitrary clifford group element"
-#       by Robert Koenig and John A. Smolin
-# ---------------------------------------------------------------------
-
-def rand_symplectic_part(symp, num_qubits):
-    """ helper function to generate the symplectic part of the random clifford """
-    symp2 = np.zeros([2*num_qubits, 2*num_qubits], dtype=np.uint8)
-    symp3 = np.zeros([2*num_qubits, 2*num_qubits], dtype=np.uint8)
-    # these interchange rows and columns because the random symplectic code
-    # uses a different convention
-    for i in range(num_qubits):
-        symp2[i] = symp[2*i]
-        symp2[i+num_qubits] = symp[2*i+1]
-    for i in range(num_qubits):
-        symp3[:, i] = symp2[:, 2*i]
-        symp3[:, i+num_qubits] = symp2[:, 2*i+1]
-
-    mat = np.zeros([2*num_qubits, 2*num_qubits], dtype=np.uint8)
-    mat[0:2*num_qubits, 0:2*num_qubits] = symp3
-    return(mat)
 
 def random_clifford(num_qubits, seed=None):
-    """pick a random Clifford gate on num_qubits"""
-    # compute size of num_qubits-qubit sympletic group
-    random.seed(seed)
-    size = 1
+    """Return a random N-qubit Clifford operator.
+
+    Args:
+        num_qubits (int): the numbe of qubits for the Clifford.
+        seed (int): Optional. To set a random seed.
+
+    Returns:
+        Clifford: the generated N-qubit clifford operator.
+
+    Reference:
+        1. R. Koenig, J.A. Smolin. *How to efficiently select an arbitrary
+           Clifford group element*. J. Math. Phys. 55, 122202 (2014).
+           `arXiv:1406.2170 [quant-ph] <https://arxiv.org/abs/1406.2170>`_
+    """
+    # Random number generator
+    # We need to use Python random module instead of Numpy.random
+    # as we are generating bigints
+    rng = Random()
+    rng.seed(seed)
+
+    # The algorithm from Ref 1. generates a random Clifford by generating
+    # a random symplectic matrix for the Clifford array, and a random
+    # symplectic Pauli vector for the Phase.
+
+    # Geneate random phase vector
+    phase = np.array(
+        [rng.randint(0, 1) for _ in range(2 * num_qubits)], dtype=np.bool)
+
+    # Compute size of N-qubit sympletic group
+    # this number will be a bigint if num_qubits > 5
+    size = pow(2, num_qubits ** 2)
     for i in range(1, num_qubits+1):
-        size = size*(pow(4, i)-1)
-    size = size*pow(2, num_qubits*num_qubits)
-    rint = random.randrange(size)
-    symp = symp_utils.symplectic(rint, num_qubits)
-    array = rand_symplectic_part(symp, num_qubits)
-    phase = [random.randint(0,1) for _ in range(2*num_qubits)]
-    cliff = Clifford(np.eye(2*num_qubits))
-    cliff.table.array = array
-    cliff.table.phase = phase
-    return(cliff)
+        size *= pow(4, i) - 1
+
+    # Sample a group element by index
+    rint = rng.randrange(size)
+
+    # Generate random element of symplectic group
+    # TODO: Code needs to be optimized
+
+    symp = symplectic(rint, num_qubits)
+    symp2 = np.zeros([2 * num_qubits, 2 * num_qubits], dtype=np.uint8)
+    symp3 = np.zeros([2 * num_qubits, 2 * num_qubits], dtype=np.uint8)
+
+    # these interchange rows and columns because the random symplectic code
+    #  uses a different convention
+    for i in range(num_qubits):
+        symp2[i] = symp[2 * i]
+        symp2[i + num_qubits] = symp[2 * i + 1]
+    for i in range(num_qubits):
+        symp3[:, i] = symp2[:, 2 * i]
+        symp3[:, i + num_qubits] = symp2[:, 2 * i + 1]
+
+    return Clifford(StabilizerTable(symp3, phase))
