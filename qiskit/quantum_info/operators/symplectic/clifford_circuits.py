@@ -444,6 +444,7 @@ def index(clifford):
     Returns:
         A unique index (integer) for the Clifford object.
     """
+    "TODO: assert that the index is not too large"
     mat = clifford.table._array
     mat = mat.reshape(mat.size)
     ret = int(0)

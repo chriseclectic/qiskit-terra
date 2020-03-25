@@ -31,7 +31,7 @@ from qiskit.quantum_info.operators import Clifford, Operator
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import append_gate, \
     index
 from qiskit.quantum_info.operators.symplectic.clifford_utils import random_clifford, \
-    clifford1_gates, clifford2_gates
+    clifford1_gates_table, clifford2_gates_table
 
 
 class VGate(Gate):
@@ -567,10 +567,14 @@ class TestCliffordOperators(QiskitTestCase):
             self.assertTrue(value)
 
     def test_clifford1_gates(self):
-        pass
-        #for i in range(24):
-            #print (i, clifford1_gates(i))
+        "Test 1-qubit clifford table"
+        cliffords1 = clifford1_gates_table()
+        self.assertTrue(len(cliffords1) == 24)
 
+    def test_clifford2_gates(self):
+        "Test 2-qubit clifford table"
+        cliffords2 = clifford2_gates_table()
+        self.assertTrue(len(cliffords2) == 11520)
 
 if __name__ == '__main__':
     unittest.main()
