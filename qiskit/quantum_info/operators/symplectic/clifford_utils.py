@@ -112,14 +112,14 @@ def append_gate_list(clifford, gate_type, qubits, gate_index, gatelist):
             gate_name = 'v'
         if gate_index == 2:
             gate_name = 'w'
-    if gate_name is not None:
-        gatelist.append(gate_name + ' ' + str(qubits[0]))
-    if gate_type == 'cnot':
-        gate_name = 'cx'
-        gatelist.append('cx ' + str(qubits[0]) + ' ' + str(qubits[1]))
 
     if gate_name is not None:
         gatelist.append(gate_name + ' ' + str(qubits[0]))
+        clifford = append_gate(clifford, gate_name, qubits)
+
+    if gate_type == 'cnot':
+        gate_name = 'cx'
+        gatelist.append('cx ' + str(qubits[0]) + ' ' + str(qubits[1]))
         clifford = append_gate(clifford, gate_name, qubits)
 
     return(clifford)
