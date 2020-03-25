@@ -437,3 +437,20 @@ def set_row_z_zero(clifford, circuit, qubit):
             circuit.s(qubit)
         append_h(clifford, qubit)
         circuit.h(qubit)
+
+def index(clifford):
+    """
+    Returns a unique index for the Clifford.
+    Returns:
+        A unique index (integer) for the Clifford object.
+    """
+    mat = clifford.table._array
+    mat = mat.reshape(mat.size)
+    ret = int(0)
+    for bit in mat:
+        ret = (ret << 1) | int(bit)
+    mat = clifford.table._phase
+    mat = mat.reshape(mat.size)
+    for bit in mat:
+        ret = (ret << 1) | int(bit)
+    return ret
