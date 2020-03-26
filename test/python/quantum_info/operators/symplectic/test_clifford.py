@@ -28,8 +28,7 @@ from qiskit.extensions.standard import (IGate, XGate, YGate, ZGate,
                                         HGate, SGate, SdgGate,
                                         CXGate, CZGate, SwapGate)
 from qiskit.quantum_info.operators import Clifford, Operator
-from qiskit.quantum_info.operators.symplectic.clifford_circuits import append_gate, \
-    index
+from qiskit.quantum_info.operators.symplectic.clifford_circuits import append_gate
 from qiskit.quantum_info.operators.symplectic.clifford_utils import random_clifford, \
     clifford1_gates_table, clifford2_gates_table
 
