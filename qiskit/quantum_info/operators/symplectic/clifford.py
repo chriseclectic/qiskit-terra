@@ -379,23 +379,6 @@ class Clifford(BaseOperator):
             table1 = other.table
             table2 = self.table
 
-        # PREVIOUS METHOD:
-        # This one isn't currently getting phases correct
-
-        # ret_table = table2.copy()
-        #
-        # Zero the return array, leave the phases in place
-        # ret_table.array *= False
-        # for i in range(ret_table.size):
-        #     for j in range(table1.size):
-        #         if table2.array[i, j]:
-        #             ret_table[i] = self._rowsum(ret_table[i], table1[j])
-        #
-        # return Clifford(ret_table)
-
-        # ALT METHOD:
-        # This one is correct but needs to be optimized
-
         num_qubits = self.num_qubits
 
         array1 = table1.array.astype(int)
@@ -413,55 +396,37 @@ class Clifford(BaseOperator):
         # Correcting for phase due to Pauli multiplicatio
         ifacts = np.zeros(2 * num_qubits, dtype=np.int)
 
-        for r2 in range(2 * num_qubits):
+        for k in range(2 * num_qubits):
 
-            row2 = array2[r2]
-            x2 = table2.X[r2]
-            z2 = table2.Z[r2]
+            row2 = array2[k]
+            x2 = table2.X[k]
+            z2 = table2.Z[k]
 
             # Adding a factor of i for each Y in the image of an operator under the
             # first operation, since Y=iXZ
 
-            ifacts[r2] += np.sum(x2 & z2)
+            ifacts[k] += np.sum(x2 & z2)
 
             # Adding factors of i due to qubit-wise Pauli multiplication
 
-            x = np.zeros(num_qubits, dtype=int)
-            z = np.zeros(num_qubits, dtype=int)
-
-            for i, r1 in enumerate(table1):
-
-                x1 = r1.X[0].astype(int)
-                z1 = r1.Z[0].astype(int)
-
-                val = np.mod(abs(3 * z1 - x1) - abs(3 * z - x) - 1, 3)
-                shift = 1 * (val == 0) - 1 * (val == 1)
-                shift = row2[i] * (x1 | z1) * (x | z) * shift
-
-                x = (x + row2[i] * x1) % 2
-                z = (z + row2[i] * z1) % 2
-
-                ifacts[r2] += np.sum(shift)
+            for j in range(num_qubits):
+                x = 0
+                z = 0
+                for i in range(2 * num_qubits):
+                    if row2[i]:
+                        x1 = array1[i, j]
+                        z1 = array1[i, j + num_qubits]
+                        if (x | z) & (x1 | z1):
+                            val = np.mod(np.abs(3 * z1 - x1) - np.abs(3 * z - x) - 1, 3)
+                            if val == 0:
+                                ifacts[k] += 1
+                            elif val == 1:
+                                ifacts[k] -= 1
+                        x = np.mod(x + x1, 2)
+                        z = np.mod(z + z1, 2)
 
         p = np.mod(ifacts, 4) // 2
 
         phase = np.mod(phase + p, 2)
 
         return Clifford(StabilizerTable(pauli, phase))
-
-    @staticmethod
-    def _rowsum(row1, row2):
-        """Rowsum from AG paper"""
-        x1, z1 = row1.X, row1.Z
-        x2, z2 = row2.X, row2.Z
-
-        # Phase update (g function in AG paper)
-        phase = row1.phase ^ row2.phase ^ np.array(
-            np.sum((~x1 & z1 & x2 & ~z2) |
-                   (x1 & ~z1 & x2 & z2) |
-                   (x1 & z1 & ~x2 & z2), axis=1) % 2, dtype=np.bool)
-
-        # Pauli update
-        pauli = row1.array ^ row2.array
-
-        return StabilizerTable(pauli, phase)
