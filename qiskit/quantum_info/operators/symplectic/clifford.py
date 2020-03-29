@@ -27,7 +27,7 @@ from .clifford_circuits import append_gate, decompose_clifford
 class Clifford(BaseOperator):
     """Clifford table operator class"""
 
-    def __init__(self, data):
+    def __init__(self, data, validate=True):
         """Initialize an operator object."""
 
         # Initialize from another Clifford by sharing the underlying
@@ -50,15 +50,11 @@ class Clifford(BaseOperator):
         else:
             self._table = StabilizerTable(data)
 
-        # Validate shape of StabilizerTable
-        if self._table.size != 2 * self._table.num_qubits:
-            raise QiskitError(
-                'Invalid Clifford (number of rows {0} != {1}). An {2}-qubit'
-                ' Clifford table requires {1} rows.'.format(
-                    self._table.size, 2 * self._table.num_qubits, self.num_qubits))
-
-        # TODO: Should we check the input array is a valid Clifford table?
-        # This should be done by the `is_unitary` method.
+            # Validate table is a symplectic matrix
+            if validate and not Clifford._is_symplectic(self._table.array):
+                raise QiskitError(
+                    'Invalid Clifford. Input StabilizerTable is not a valid'
+                    ' symplectic matrix.')
 
         # Initialize BaseOperator
         dims = self._table.num_qubits * (2,)
@@ -134,17 +130,7 @@ class Clifford(BaseOperator):
         # A valid Clifford is always unitary, so this function is really
         # checking that the underlying Stabilizer table array is a valid
         # Clifford array.
-
-        # Condition is
-        # table.T * [[0, 1], [1, 0]] * table = [[0, 1], [1, 0]]
-        # where we are block matrix multiplying using symplectic product
-
-        one = np.eye(self.num_qubits, dtype=int)
-        zero = np.zeros((self.num_qubits, self.num_qubits), dtype=int)
-        seye = np.block([[zero, one], [one, zero]])
-        arr = self.table.array.astype(int)
-
-        return np.array_equal(arr.T.dot(seye).dot(arr) % 2, seye)
+        return Clifford._is_symplectic(self.table.array)
 
     # ---------------------------------------------------------------------
     # BaseOperator Abstract Methods
@@ -304,13 +290,31 @@ class Clifford(BaseOperator):
             instruction = instruction.to_instruction()
 
         # Initialize an identity Clifford
-        clifford = Clifford(np.eye(2 * instruction.num_qubits))
+        clifford = Clifford(np.eye(2 * instruction.num_qubits), validate=False)
         append_gate(clifford, instruction)
         return clifford
 
     # ---------------------------------------------------------------------
-    # Internal tensor produce
+    # Internal helper functions
     # ---------------------------------------------------------------------
+
+    @staticmethod
+    def _is_symplectic(mat):
+        """Return True if input is symplectic matrix."""
+        # Condition is
+        # table.T * [[0, 1], [1, 0]] * table = [[0, 1], [1, 0]]
+        # where we are block matrix multiplying using symplectic product
+
+        dim = len(mat) // 2
+        if mat.shape != (2 * dim, 2 * dim):
+            return False
+
+        one = np.eye(dim, dtype=np.int)
+        zero = np.zeros((dim, dim), dtype=np.int)
+        seye = np.block([[zero, one], [one, zero]])
+        arr = mat.astype(np.int)
+        return np.array_equal(np.mod(arr.T.dot(seye).dot(arr), 2), seye)
+
     def _tensor_product(self, other, reverse=False):
         """Return the tensor product operator.
 
@@ -341,8 +345,7 @@ class Clifford(BaseOperator):
                 cliff1.stabilizer.tensor(cliff0.num_qubits * 'I'))
 
         # Add the padded table
-        table = destab + stab
-        return Clifford(table)
+        return Clifford(destab + stab, validate=False)
 
     # ---------------------------------------------------------------------
     # Internal composition methods
@@ -352,20 +355,22 @@ class Clifford(BaseOperator):
         if qargs is None:
             return clifford
 
+        padded = Clifford(StabilizerTable(
+            np.eye(2 * self.num_qubits, dtype=np.bool)),
+            validate=False)
+
         inds = list(qargs) + [self.num_qubits + i for i in qargs]
 
         # Pad Pauli array
         pauli = clifford.table.array
-        pad_pauli = np.eye(2 * self.num_qubits, dtype=np.bool)
         for i, pos in enumerate(qargs):
-            pad_pauli[inds, pos] = pauli[:, i]
-            pad_pauli[inds, self.num_qubits + pos] = pauli[:, clifford.num_qubits + i]
+            padded.table.array[inds, pos] = pauli[:, i]
+            padded.table.array[inds, self.num_qubits + pos] = pauli[:, clifford.num_qubits + i]
 
         # Pad phase
-        pad_phase = np.zeros(2 * self.num_qubits, dtype=np.bool)
-        pad_phase[inds] = clifford.table.phase
+        padded.table.phase[inds] = clifford.table.phase
 
-        return Clifford(StabilizerTable(pad_pauli, pad_phase))
+        return padded
 
     def _compose_clifford(self, other, front=False):
         """Return the composition channel assume other is Clifford of same size as self."""
@@ -426,4 +431,4 @@ class Clifford(BaseOperator):
 
         phase = np.mod(phase + p, 2)
 
-        return Clifford(StabilizerTable(pauli, phase))
+        return Clifford(StabilizerTable(pauli, phase), validate=False)

@@ -407,7 +407,7 @@ class TestCliffordOperators(QiskitTestCase):
             value = Clifford(circ).is_unitary()
             self.assertTrue(value)
         # tests a false clifford
-        cliff = Clifford([[0, 0], [0, 1]])
+        cliff = Clifford([[0, 0], [0, 1]], validate=False)
         value = cliff.is_unitary()
         self.assertFalse(value)
 
