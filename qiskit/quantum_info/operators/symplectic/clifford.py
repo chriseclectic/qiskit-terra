@@ -152,27 +152,21 @@ class Clifford(BaseOperator):
 
     def conjugate(self):
         """Return the conjugate of the Clifford."""
-        # TODO: Needs testing to see if correct
         x = self.table.X
         z = self.table.Z
         ret = self.copy()
         ret.table.phase = self.table.phase ^ (np.sum(x & z, axis=1) % 2)
         return ret
 
+    def adjoint(self):
+        """Return the conjugate transpose of the Clifford"""
+        # TODO: Update to compute directly from table rather than circuit
+        # decomposition
+        return Clifford(self.to_circuit().inverse())
+
     def transpose(self):
         """Return the transpose of the Clifford."""
-
-        # TODO: Needs testing to see if correct
-        # This is done using block matrix multiplication
-        # [[0, 1], [1, 0]] * table.T * [[0, 1], [1, 0]]
-
-        ret = self.copy()
-        tmp = ret.destabilizer.X.copy()
-        ret.destabilizer.X = ret.stabilizer.Z
-        ret.destabilizer.Z = ret.destabilizer.Z.T
-        ret.stabilizer.X = ret.stabilizer.X.T
-        ret.stabilizer.Z = tmp
-        return ret
+        return self.adjoint().conjugate()
 
     def compose(self, other, qargs=None, front=False):
         """Return the composed operator.
