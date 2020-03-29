@@ -203,11 +203,9 @@ class Clifford(BaseOperator):
         # Clifford object can't be changed by composition
         self._get_compose_dims(other, qargs, front)
 
-        if qargs is None or (
-                len(qargs) == self.num_qubits and sorted(qargs) == qargs):
-            return self._compose_clifford(other, front=front)
-
-        return self._compose_subsystem(other, qargs, front=front)
+        # Pad other with identities if composeing on subsystem
+        other = self._pad_with_identity(other, qargs)
+        return self._compose_clifford(other, front=front)
 
     def dot(self, other, qargs=None):
         """Return the right multiplied operator self * other.
@@ -349,26 +347,25 @@ class Clifford(BaseOperator):
     # ---------------------------------------------------------------------
     # Internal composition methods
     # ---------------------------------------------------------------------
-    def _compose_subsystem(self, other, qargs, front=False):
-        """Return the composition channel."""
-        # Create Clifford on full system from subsystem and compose
-        nq = self.num_qubits
-        no = other.num_qubits
-        fullother = self.copy()
-        fullother.table.array = np.eye(2 * self.num_qubits, dtype=np.bool)
-        for inda, qinda in enumerate(qargs):
-            for indb, qindb in enumerate(qargs):
-                fullother.table._array[nq - 1 - qinda, nq - 1 - qindb] = other.table._array[
-                    no - 1 - inda, no - 1 - indb]
-                fullother.table._array[nq - 1 - qinda, 2*nq - 1 - qindb] = other.table._array[
-                    no - 1 - inda, 2*no - 1 - indb]
-                fullother.table._array[2*nq - 1 - qinda, nq - 1 - qindb] = other.table._array[
-                    2*no - 1 - inda, no - 1 - indb]
-                fullother.table._array[2*nq - 1 - qinda, 2*nq - 1 - qindb] = other.table._array[
-                    2*no - 1 - inda, 2*no - 1 - indb]
-                fullother.table._phase[nq - 1 - qinda] = other.table._phase[no - 1 - inda]
-                fullother.table._phase[2*nq - 1 - qinda] = other.table._phase[2*no - 1 - inda]
-        return self._compose_clifford(fullother, front=front)
+    def _pad_with_identity(self, clifford, qargs):
+        """Pad Clifford with identities on other subsystems."""
+        if qargs is None:
+            return clifford
+
+        inds = list(qargs) + [self.num_qubits + i for i in qargs]
+
+        # Pad Pauli array
+        pauli = clifford.table.array
+        pad_pauli = np.eye(2 * self.num_qubits, dtype=np.bool)
+        for i, pos in enumerate(qargs):
+            pad_pauli[inds, pos] = pauli[:, i]
+            pad_pauli[inds, self.num_qubits + pos] = pauli[:, clifford.num_qubits + i]
+
+        # Pad phase
+        pad_phase = np.zeros(2 * self.num_qubits, dtype=np.bool)
+        pad_phase[inds] = clifford.table.phase
+
+        return Clifford(StabilizerTable(pad_pauli, pad_phase))
 
     def _compose_clifford(self, other, front=False):
         """Return the composition channel assume other is Clifford of same size as self."""
