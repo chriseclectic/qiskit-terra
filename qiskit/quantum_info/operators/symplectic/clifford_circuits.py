@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, 2020 BM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2020
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 """
 Circuit methods for Clifford class.
 """
@@ -28,6 +35,9 @@ def append_gate(clifford, gate, qargs=None):
 
     Returns:
         Clifford: the updated Clifford.
+
+    Raises:
+        QiskitError: if input gate cannot be decomposed into Clifford gates.
     """
     if qargs is None:
         qargs = list(range(clifford.num_qubits))
@@ -88,8 +98,6 @@ def append_gate(clifford, gate, qargs=None):
 def decompose_clifford(clifford):
     """Decompose a Clifford into a QuantumCircuit.
 
-    TODO: Reference paper for Algorithm (Gottesman?).
-
     Args:
         clifford (Clifford): a clifford operator.
 
@@ -143,6 +151,7 @@ def append_i(clifford, qubit):
     Returns:
         Clifford: the updated Clifford.
     """
+    # pylint: disable=unused-argument
     return clifford
 
 

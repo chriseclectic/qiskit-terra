@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, 2020 BM.
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2017, 2020
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,10 +14,11 @@
 """
 Clifford operator class.
 """
+# pylint: disable=invalid-name, abstract-method
 
 import numpy as np
 
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit, Instruction
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.operator import Operator
@@ -127,6 +130,7 @@ class Clifford(BaseOperator):
 
     def is_unitary(self, atol=None, rtol=None):
         """Return True if the Clifford table is valid."""
+        # pylint: disable=unused-argument
         # A valid Clifford is always unitary, so this function is really
         # checking that the underlying Stabilizer table array is a valid
         # Clifford array.
@@ -356,8 +360,7 @@ class Clifford(BaseOperator):
             return clifford
 
         padded = Clifford(StabilizerTable(
-            np.eye(2 * self.num_qubits, dtype=np.bool)),
-            validate=False)
+            np.eye(2 * self.num_qubits, dtype=np.bool)), validate=False)
 
         inds = list(qargs) + [self.num_qubits + i for i in qargs]
 
