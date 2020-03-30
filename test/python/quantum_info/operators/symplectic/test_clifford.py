@@ -592,5 +592,21 @@ class TestCliffordOperators(QiskitTestCase):
             target = Clifford(circ)
             self.assertEqual(target, value)
 
+    @combine(num_qubits=[1, 2, 3])
+    def test_to_circuit(self, num_qubits):
+        """Test to_circuit method (decompose)"""
+        samples = 10
+        num_gates = 10
+        seed = 700
+        gates = 'all'
+        for i in range(samples):
+            circ = random_clifford_circuit(num_qubits,
+                                           num_gates,
+                                           gates=gates,
+                                           seed=seed + i)
+            value = Clifford(Clifford(circ).to_circuit()).to_operator()
+            target = Operator(circ)
+            self.assertTrue(value)
+
 if __name__ == '__main__':
     unittest.main()
