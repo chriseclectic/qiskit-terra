@@ -21,8 +21,8 @@ from scipy import sparse
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.operator import Operator
-from qiskit.quantum_info.operators.pauli import Pauli
 from qiskit.quantum_info.operators.symplectic import Clifford
+from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 from qiskit.quantum_info.operators.channel import SuperOp, Choi
 
 try:
