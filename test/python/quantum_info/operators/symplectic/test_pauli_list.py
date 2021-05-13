@@ -95,21 +95,18 @@ class TestPauliListInit(QiskitTestCase):
 
         with self.subTest(msg='str init "XI"'):
             pauli_list = PauliList("XI")
-            value = (pauli_list.z, pauli_list.x)
             target = (np.array([[False, False]]), np.array([[False, True]]))
             np.testing.assert_equal(pauli_list.z, target[0])
             np.testing.assert_equal(pauli_list.x, target[1])
 
         with self.subTest(msg='str init "YZ"'):
             pauli_list = PauliList("YZ")
-            value = (pauli_list.z, pauli_list.x)
             target = (np.array([[True, True]]), np.array([[False, True]]))
             np.testing.assert_equal(pauli_list.z, target[0])
             np.testing.assert_equal(pauli_list.x, target[1])
 
         with self.subTest(msg='str init "XIZ"'):
             pauli_list = PauliList("XIZ")
-            value = (pauli_list.z, pauli_list.x)
             target = (np.array([[True, False, False]]), np.array([[False, False, True]]))
             np.testing.assert_equal(pauli_list.z, target[0])
             np.testing.assert_equal(pauli_list.x, target[1])
@@ -547,17 +544,17 @@ class TestPauliListOperator(QiskitTestCase):
             self.assertEqual(target, value)
 
         with self.subTest(msg="compose single X"):
-            target = PauliList(["X", "I", "Z", "Y"])
+            target = PauliList(["X", "I", "iZ", "-iY"])
             value = pauli.compose("X")
             self.assertEqual(target, value)
 
         with self.subTest(msg="compose single Y"):
-            target = PauliList(["Y", "Z", "I", "X"])
+            target = PauliList(["Y", "-iZ", "I", "iX"])
             value = pauli.compose("Y")
             self.assertEqual(target, value)
 
         with self.subTest(msg="compose single Z"):
-            target = PauliList(["Z", "Y", "X", "I"])
+            target = PauliList(["Z", "iY", "-iX", "I"])
             value = pauli.compose("Z")
             self.assertEqual(target, value)
 
@@ -572,17 +569,17 @@ class TestPauliListOperator(QiskitTestCase):
             self.assertEqual(target, value)
 
         with self.subTest(msg="dot single X"):
-            target = PauliList(["X", "I", "Z", "Y"])
+            target = PauliList(["X", "I", "-iZ", "iY"])
             value = pauli.dot("X")
             self.assertEqual(target, value)
 
         with self.subTest(msg="dot single Y"):
-            target = PauliList(["Y", "Z", "I", "X"])
+            target = PauliList(["Y", "iZ", "I", "-iX"])
             value = pauli.dot("Y")
             self.assertEqual(target, value)
 
         with self.subTest(msg="dot single Z"):
-            target = PauliList(["Z", "Y", "X", "I"])
+            target = PauliList(["Z", "-iY", "iX", "I"])
             value = pauli.dot("Z")
             self.assertEqual(target, value)
 
@@ -593,17 +590,17 @@ class TestPauliListOperator(QiskitTestCase):
         pauli2 = PauliList("Z")
 
         with self.subTest(msg="compose 1-qubit qargs=[0]"):
-            target = PauliList(["IIZ", "XXY"])
+            target = PauliList(["IIZ", "iXXY"])
             value = pauli1.compose(pauli2, qargs=[0])
             self.assertEqual(value, target)
 
         with self.subTest(msg="compose 1-qubit qargs=[1]"):
-            target = PauliList(["IZI", "XYX"])
+            target = PauliList(["IZI", "iXYX"])
             value = pauli1.compose(pauli2, qargs=[1])
             self.assertEqual(value, target)
 
         with self.subTest(msg="compose 1-qubit qargs=[2]"):
-            target = PauliList(["ZII", "YXX"])
+            target = PauliList(["ZII", "iYXX"])
             value = pauli1.compose(pauli2, qargs=[2])
             self.assertEqual(value, target)
 
@@ -614,17 +611,17 @@ class TestPauliListOperator(QiskitTestCase):
         pauli2 = PauliList("Z")
 
         with self.subTest(msg="dot 1-qubit qargs=[0]"):
-            target = PauliList(["IIZ", "XXY"])
+            target = PauliList(["IIZ", "-iXXY"])
             value = pauli1.dot(pauli2, qargs=[0])
             self.assertEqual(value, target)
 
         with self.subTest(msg="dot 1-qubit qargs=[1]"):
-            target = PauliList(["IZI", "XYX"])
+            target = PauliList(["IZI", "-iXYX"])
             value = pauli1.dot(pauli2, qargs=[1])
             self.assertEqual(value, target)
 
         with self.subTest(msg="dot 1-qubit qargs=[2]"):
-            target = PauliList(["ZII", "YXX"])
+            target = PauliList(["ZII", "-iYXX"])
             value = pauli1.dot(pauli2, qargs=[2])
             self.assertEqual(value, target)
 
@@ -1079,15 +1076,9 @@ class TestPauliListMethods(QiskitTestCase):
                 value = pauli.insert(1, PauliList(i), qubit=True)
                 self.assertEqual(value, target1)
 
-            with self.subTest(msg="single-column single-val from array"):
-                value = pauli.insert(0, PauliList(i).array, qubit=True)
-                self.assertEqual(value, target0)
-                value = pauli.insert(1, PauliList(i).array, qubit=True)
-                self.assertEqual(value, target1)
-
         # Insert single column with multiple values
         pauli = PauliList(["X", "Y", "Z"])
-        for i in [("I", "X", "Y"), ("X", "Y", "Z"), ("Y", "Z", "I")]:
+        for i in [["I", "X", "Y"], ["X", "Y", "Z"], ["Y", "Z", "I"]]:
             target0 = PauliList(["X" + i[0], "Y" + i[1], "Z" + i[2]])
             target1 = PauliList([i[0] + "X", i[1] + "Y", i[2] + "Z"])
 
@@ -1095,12 +1086,6 @@ class TestPauliListMethods(QiskitTestCase):
                 value = pauli.insert(0, PauliList(i), qubit=True)
                 self.assertEqual(value, target0)
                 value = pauli.insert(1, PauliList(i), qubit=True)
-                self.assertEqual(value, target1)
-
-            with self.subTest(msg="single-column multiple-vals from array"):
-                value = pauli.insert(0, PauliList(i).array, qubit=True)
-                self.assertEqual(value, target0)
-                value = pauli.insert(1, PauliList(i).array, qubit=True)
                 self.assertEqual(value, target1)
 
         # Insert multiple columns from single
@@ -1122,19 +1107,13 @@ class TestPauliListMethods(QiskitTestCase):
                 value = pauli.insert(1, PauliList(i), qubit=True)
                 self.assertEqual(value, target1)
 
-            with self.subTest(msg="multiple-columns single-val from array"):
-                value = pauli.insert(0, PauliList(i).array, qubit=True)
-                self.assertEqual(value, target0)
-                value = pauli.insert(1, PauliList(i).array, qubit=True)
-                self.assertEqual(value, target1)
-
         # Insert multiple columns multiple row values
         pauli = PauliList(["X", "Y", "Z"])
         for j in range(1, 5):
             for i in [
-                (j * "I", j * "X", j * "Y"),
-                (j * "X", j * "Z", j * "Y"),
-                (j * "Y", j * "Z", j * "I"),
+                [j * "I", j * "X", j * "Y"],
+                [j * "X", j * "Z", j * "Y"],
+                [j * "Y", j * "Z", j * "I"],
             ]:
                 target0 = PauliList(["X" + i[0], "Y" + i[1], "Z" + i[2]])
                 target1 = PauliList([i[0] + "X", i[1] + "Y", i[2] + "Z"])
@@ -1143,12 +1122,6 @@ class TestPauliListMethods(QiskitTestCase):
                     value = pauli.insert(0, PauliList(i), qubit=True)
                     self.assertEqual(value, target0)
                     value = pauli.insert(1, PauliList(i), qubit=True)
-                    self.assertEqual(value, target1)
-
-                with self.subTest(msg="multiple-column multiple-vals from array"):
-                    value = pauli.insert(0, PauliList(i).array, qubit=True)
-                    self.assertEqual(value, target0)
-                    value = pauli.insert(1, PauliList(i).array, qubit=True)
                     self.assertEqual(value, target1)
 
     def test_commutes(self):
