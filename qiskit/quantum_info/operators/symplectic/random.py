@@ -56,8 +56,9 @@ def random_pauli_list(num_qubits, size=1, seed=None, phase=True):
     Args:
         num_qubits (int): the number of qubits.
         size (int): Optional. The number of rows of the table (Default: 1).
-        seed (int or np.random.Generator): Optional. Set a fixed seed or
-                                           generator for RNG.
+        seed (int or np.random.Generator): Optional. Set a fixed seed or generator for RNG.
+        phase (bool): If True the phase is randomized, otherwise the phase is fixed to 0.
+                     [Default: False]
 
     Returns:
         PauliList: a random PauliList.
@@ -71,8 +72,10 @@ def random_pauli_list(num_qubits, size=1, seed=None, phase=True):
 
     z = rng.integers(2, size=(size, num_qubits)).astype(bool)
     x = rng.integers(2, size=(size, num_qubits)).astype(bool)
-    phase = rng.integers(4, size=(size)).astype(bool)
-    return PauliList((z, x, phase))
+    if phase:
+        _phase = rng.integers(4, size=(size))
+        return PauliList((z, x, _phase))
+    return PauliList((z, x))
 
 
 def random_pauli_table(num_qubits, size=1, seed=None):
