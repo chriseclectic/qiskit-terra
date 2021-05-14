@@ -20,8 +20,24 @@ from ddt import ddt
 from scipy.sparse import csr_matrix
 
 from qiskit import QiskitError
-from qiskit.quantum_info.operators.symplectic import PauliList, PauliTable
+from qiskit.circuit.library import (
+    CXGate,
+    CYGate,
+    CZGate,
+    HGate,
+    IGate,
+    SdgGate,
+    SGate,
+    SwapGate,
+    XGate,
+    YGate,
+    ZGate,
+)
+from qiskit.quantum_info.operators import Operator, PauliList, PauliTable
+from qiskit.quantum_info.random import random_clifford, random_pauli_list
 from qiskit.test import QiskitTestCase
+
+from .test_pauli import pauli_group_labels
 
 
 def pauli_mat(label):
@@ -742,6 +758,7 @@ class TestPauliListOperator(QiskitTestCase):
             self.assertEqual(value, target)
 
 
+@ddt
 class TestPauliListMethods(QiskitTestCase):
     """Tests for PauliList utility methods class."""
 
@@ -1393,6 +1410,38 @@ class TestPauliListMethods(QiskitTestCase):
             value = list(pauli.anticommutes_with_all(other))
             target = []
             self.assertEqual(value, target)
+
+    @combine(gate=(IGate(), XGate(), YGate(), ZGate(), HGate(), SGate(), SdgGate()))
+    def test_evolve_clifford1(self, gate):
+        """Test evolve method for 1-qubit Clifford gates."""
+        op = Operator(gate)
+        pauli_list = PauliList(pauli_group_labels(1, True))
+        value = [Operator(pauli) for pauli in pauli_list.evolve(gate)]
+        target = [op.adjoint().dot(pauli).dot(op) for pauli in pauli_list]
+        self.assertListEqual(value, target)
+
+    @combine(gate=(CXGate(), CYGate(), CZGate(), SwapGate()))
+    def test_evolve_clifford2(self, gate):
+        """Test evolve method for 2-qubit Clifford gates."""
+        op = Operator(gate)
+        pauli_list = PauliList(pauli_group_labels(2, True))
+        value = [Operator(pauli) for pauli in pauli_list.evolve(gate)]
+        target = [op.adjoint().dot(pauli).dot(op) for pauli in pauli_list]
+        self.assertListEqual(value, target)
+
+    @combine(phase=(True, False))
+    def test_evolve_clifford_qargs(self, phase):
+        """Test evolve method for random Clifford"""
+        cliff = random_clifford(3, seed=10)
+        op = Operator(cliff)
+        pauli_list = random_pauli_list(5, 3, seed=10, phase=phase)
+        qargs = [3, 0, 1]
+        value = [Operator(pauli) for pauli in pauli_list.evolve(cliff, qargs=qargs)]
+        target = [
+            Operator(pauli).compose(op.adjoint(), qargs=qargs).dot(op, qargs=qargs)
+            for pauli in pauli_list
+        ]
+        self.assertListEqual(value, target)
 
 
 if __name__ == "__main__":
