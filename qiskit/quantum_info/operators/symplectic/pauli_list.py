@@ -793,7 +793,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         Returns:
             bool: True if Pauli's anticommute, False if they commute.
         """
-        return np.logical_not(self.anticommutes(other, qargs=qargs))
+        return np.logical_not(self.commutes(other, qargs=qargs))
 
     def commutes_with_all(self, other):
         """Return indexes of rows that commute other.

@@ -20,7 +20,7 @@ from ddt import ddt
 from scipy.sparse import csr_matrix
 
 from qiskit import QiskitError
-from qiskit.quantum_info.operators.symplectic import PauliList
+from qiskit.quantum_info.operators.symplectic import PauliList, PauliTable
 from qiskit.test import QiskitTestCase
 
 
@@ -111,9 +111,8 @@ class TestPauliListInit(QiskitTestCase):
             np.testing.assert_equal(pauli_list.z, target[0])
             np.testing.assert_equal(pauli_list.x, target[1])
 
-    def test_table_init(self):
-        """Test table initialization."""
-        # Pauli Table initialization
+    def test_list_init(self):
+        """Test list initialization."""
         with self.subTest(msg="PauliList"):
             target = PauliList(["XI", "IX", "IZ"])
             value = PauliList(target)
@@ -121,6 +120,19 @@ class TestPauliListInit(QiskitTestCase):
 
         with self.subTest(msg="PauliList no copy"):
             target = PauliList(["XI", "IX", "IZ"])
+            value = PauliList(target)
+            value[0] = "II"
+            self.assertEqual(value, target)
+
+    def test_table_init(self):
+        """Test table initialization."""
+        with self.subTest(msg="PauliTable"):
+            target = PauliTable.from_labels(["XI", "IX", "IZ"])
+            value = PauliList(target)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg="PauliTable no copy"):
+            target = PauliTable.from_labels(["XI", "IX", "IZ"])
             value = PauliList(target)
             value[0] = "II"
             self.assertEqual(value, target)
@@ -1188,6 +1200,72 @@ class TestPauliListMethods(QiskitTestCase):
         with self.subTest(msg="commutes single-Pauli ZZ"):
             value = list(pauli.commutes("ZZ"))
             target = [True, False, False, True, True]
+            self.assertEqual(value, target)
+
+    def test_anticommutes(self):
+        """Test anticommutes method."""
+        # Single qubit Pauli
+        pauli = PauliList(["I", "X", "Y", "Z"])
+        with self.subTest(msg="anticommutes single-Pauli I"):
+            value = list(pauli.anticommutes("I"))
+            target = [False, False, False, False]
+            self.assertEqual(value, target)
+
+        with self.subTest(msg="anticommutes single-Pauli X"):
+            value = list(pauli.anticommutes("X"))
+            target = [False, False, True, True]
+            self.assertEqual(value, target)
+
+        with self.subTest(msg="anticommutes single-Pauli Y"):
+            value = list(pauli.anticommutes("Y"))
+            target = [False, True, False, True]
+            self.assertEqual(value, target)
+
+        with self.subTest(msg="anticommutes single-Pauli Z"):
+            value = list(pauli.anticommutes("Z"))
+            target = [False, True, True, False]
+            self.assertEqual(value, target)
+
+        # 2-qubit Pauli
+        pauli = PauliList(["II", "IX", "YI", "XY", "ZZ"])
+        with self.subTest(msg="anticommutes single-Pauli II"):
+            value = list(pauli.anticommutes("II"))
+            target = [False, False, False, False, False]
+            self.assertEqual(value, target)
+
+        with self.subTest(msg="anticommutes single-Pauli IX"):
+            value = list(pauli.anticommutes("IX"))
+            target = [False, False, False, True, True]
+            self.assertEqual(value, target)
+
+        with self.subTest(msg="anticommutes single-Pauli XI"):
+            value = list(pauli.anticommutes("XI"))
+            target = [False, False, True, False, True]
+            self.assertEqual(value, target)
+
+        with self.subTest(msg="anticommutes single-Pauli YI"):
+            value = list(pauli.anticommutes("YI"))
+            target = [False, False, False, True, True]
+            self.assertEqual(value, target)
+
+        with self.subTest(msg="anticommutes single-Pauli IY"):
+            value = list(pauli.anticommutes("IY"))
+            target = [False, True, False, False, True]
+            self.assertEqual(value, target)
+
+        with self.subTest(msg="anticommutes single-Pauli XY"):
+            value = list(pauli.anticommutes("XY"))
+            target = [False, True, True, False, False]
+            self.assertEqual(value, target)
+
+        with self.subTest(msg="anticommutes single-Pauli YX"):
+            value = list(pauli.anticommutes("YX"))
+            target = [False, False, False, False, False]
+            self.assertEqual(value, target)
+
+        with self.subTest(msg="anticommutes single-Pauli ZZ"):
+            value = list(pauli.anticommutes("ZZ"))
+            target = [False, True, True, False, False]
             self.assertEqual(value, target)
 
     def test_commutes_with_all(self):
