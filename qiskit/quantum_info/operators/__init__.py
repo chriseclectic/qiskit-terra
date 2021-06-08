@@ -20,3 +20,4 @@ from .symplectic import Clifford, Pauli, SparsePauliOp, PauliTable, StabilizerTa
 from .symplectic import pauli_basis
 from .pauli import pauli_group
 from .dihedral import CNOTDihedral
+from .sparse_op import SparseOp
