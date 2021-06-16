@@ -148,7 +148,7 @@ def random_circuit(
             # with some low probability, condition on classical bit values
             if conditional and rng.choice(range(10)) == 0:
                 value = rng.integers(0, np.power(2, num_qubits))
-                op.condition = (cr, value)
+                op = op.c_if(cr, value)
 
             qc.append(op, register_operands)
 

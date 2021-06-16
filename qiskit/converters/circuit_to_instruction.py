@@ -108,16 +108,12 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
 
     # fix condition
     for rule in definition:
+        rule[0]._resolve_condition(circuit)
         condition = rule[0].condition
         if condition:
-            reg, val = condition
-            if reg.size == c.size:
-                rule[0].condition = (c, val)
-            else:
-                raise QiskitError(
-                    "Cannot convert condition in circuit with "
-                    "multiple classical registers to instruction"
-                )
+            mask, val = condition
+            mapped_mask = tuple([clbit_map[i] for i in mask])
+            rule[0].conditional = (mapped_mask, val)
 
     qc = QuantumCircuit(*regs, name=instruction.name)
     for instr, qargs, cargs in definition:

@@ -365,16 +365,27 @@ class Instruction:
 
     def c_if(self, classical, val):
         """Add classical condition on register or cbit classical and value val."""
-        if not isinstance(classical, (ClassicalRegister, Clbit)):
-            raise CircuitError("c_if must be used with a classical register or classical bit")
         if val < 0:
             raise CircuitError("condition value should be non-negative")
-        if isinstance(classical, Clbit):
-            # Casting the conditional value as Boolean when
-            # the classical condition is on a classical bit.
-            val = bool(val)
-        self.condition = (classical, val)
+        if isinstance(classical, ClassicalRegister):
+            classical = tuple(classical[:])
+        elif isinstance(classical, (int, Clbit)):
+            classical = (classical,)
+        # Validate classical
+        for bit in classical:
+            if not isinstance(bit, (int, Clbit)):
+                raise CircuitError("c_if must be used with a classical register, classical bits, or ints")
+        self.condition = (tuple(classical), val)
         return self
+
+    def _resolve_condition(self, circuit):
+        """Maps bits in condition to circuit Clbits"""
+        # Due to the way conditional instructions are created we don't know
+        # the Clbits in the circuit it was added to, hence we have to resolve
+        # these mask clbits later
+        if self.condition:
+            resolved = tuple(circuit.cbit_argument_conversion(self.condition[0]))
+            self.condition = (resolved, self.condition[1])
 
     def copy(self, name=None):
         """

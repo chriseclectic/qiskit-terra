@@ -117,6 +117,7 @@ def _assemble_circuit(
 
     instructions = []
     for op_context in circuit.data:
+        op_context[0]._resolve_condition(circuit)
         instruction = op_context[0].assemble()
 
         # Add register attributes to the instruction
@@ -138,16 +139,12 @@ def _assemble_circuit(
             ctrl_reg, ctrl_val = instruction._condition
             mask = 0
             val = 0
-            if isinstance(ctrl_reg, Clbit):
-                mask = 1 << clbit_indices[ctrl_reg]
-                val = (ctrl_val & 1) << clbit_indices[ctrl_reg]
-            else:
-                for clbit in clbit_indices:
-                    if clbit in ctrl_reg:
-                        mask |= 1 << clbit_indices[clbit]
-                        val |= ((ctrl_val >> list(ctrl_reg).index(clbit)) & 1) << clbit_indices[
-                            clbit
-                        ]
+            for clbit in clbit_indices:
+                if clbit in ctrl_reg:
+                    mask |= 1 << clbit_indices[clbit]
+                    val |= ((ctrl_val >> list(ctrl_reg).index(clbit)) & 1) << clbit_indices[
+                        clbit
+                    ]
 
             conditional_reg_idx = memory_slots + max_conditional_idx
             conversion_bfunc = QasmQobjInstruction(

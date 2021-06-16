@@ -769,10 +769,11 @@ class QuantumCircuit:
             n_cargs = [edge_map[carg] for carg in cargs]
             n_instr = instr.copy()
 
-            if instr.condition is not None:
-                from qiskit.dagcircuit import DAGCircuit  # pylint: disable=cyclic-import
-
-                n_instr.condition = DAGCircuit._map_condition(edge_map, instr.condition, self.cregs)
+            if n_instr.condition is not None:
+                n_instr._resolve_condition(self)
+                creg_mask, creg_val = instr.condition
+                mapped_mask = tuple([clbit_map[i] for i in creg_mask])
+                n_instr.condition = (mapped_mask, creg_val)
 
             mapped_instrs.append((n_instr, n_qargs, n_cargs))
 
@@ -1735,13 +1736,10 @@ class QuantumCircuit:
             # Assuming here that there is no conditional
             # snapshots or barriers ever.
             if instr.condition:
+                instr._resolve_condition(self)
                 # Controls operate over all bits of a classical register
                 # or over a single bit
-                if isinstance(instr.condition[0], Clbit):
-                    condition_bits = [instr.condition[0]]
-                else:
-                    condition_bits = instr.condition[0]
-                for cbit in condition_bits:
+                for cbit in instr.condition[0]:
                     idx = bit_indices[cbit]
                     if idx not in reg_ints:
                         reg_ints.append(idx)
@@ -1833,6 +1831,7 @@ class QuantumCircuit:
                 # Controls necessarily join all the cbits in the
                 # register that they use.
                 if instr.condition and not unitary_only:
+                    instr._resolve_condition(self)
                     creg = instr.condition[0]
                     for bit in creg:
                         idx = bit_indices[bit]

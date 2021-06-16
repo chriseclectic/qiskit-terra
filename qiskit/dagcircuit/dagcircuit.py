@@ -327,12 +327,11 @@ class DAGCircuit:
         Raises:
             DAGCircuitError: if conditioning on an invalid register
         """
-        if (
-            condition is not None
-            and condition[0] not in self.clbits
-            and condition[0].name not in self.cregs
-        ):
-            raise DAGCircuitError("invalid creg in condition for %s" % name)
+        if condition is None:
+            return
+        for bit in condition[0]:
+            if bit not in self.clbits:
+                raise DAGCircuitError("invalid Clbit in condition for %s" % name)
 
     def _check_bits(self, args, amap):
         """Check the values of a list of (qu)bit arguments.
@@ -355,7 +354,7 @@ class DAGCircuit:
         """Return a list of bits in the given condition.
 
         Args:
-            cond (tuple or None): optional condition (ClassicalRegister, int) or (Clbit, bool)
+            cond (tuple or None): optional condition (tuple[Clbit], int)
 
         Returns:
             list[Clbit]: list of classical bits
@@ -365,14 +364,7 @@ class DAGCircuit:
         """
         if cond is None:
             return []
-        elif isinstance(cond[0], ClassicalRegister):
-            # Returns a list of all the cbits in the given creg cond[0].
-            return cond[0][:]
-        elif isinstance(cond[0], Clbit):
-            # Returns a singleton list of the conditional cbit.
-            return [cond[0]]
-        else:
-            raise CircuitError("Condition must be used with ClassicalRegister or Clbit.")
+        return cond[0]
 
     def _add_op_node(self, op, qargs, cargs):
         """Add a new operation node to the graph and assign properties.

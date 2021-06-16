@@ -385,10 +385,11 @@ class DAGDependency:
             for elem in qargs:
                 qindices_list.append(self.qubits.index(elem))
             if operation.condition:
+                size = len(operation.condition[0])
                 for clbit in self.clbits:
                     if clbit in operation.condition[0]:
                         initial = self.clbits.index(clbit)
-                        final = self.clbits.index(clbit) + operation.condition[0].size
+                        final = self.clbits.index(clbit) + size
                         cindices_list = range(initial, final)
                         break
             else:
