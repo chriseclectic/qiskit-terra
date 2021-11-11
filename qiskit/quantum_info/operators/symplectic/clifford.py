@@ -23,6 +23,7 @@ from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.synthesis.clifford_decompose import decompose_clifford
 from qiskit.quantum_info.operators.mixins import generate_apidocs, AdjointMixin
+from .pauli_list import PauliList
 from .stabilizer_table import StabilizerTable
 from .clifford_circuits import _append_circuit
 
@@ -109,8 +110,7 @@ class Clifford(BaseOperator, AdjointMixin):
     def __init__(self, data, validate=True):
         """Initialize an operator object."""
 
-        # Initialize from another Clifford by sharing the underlying
-        # StabilizerTable
+        # Initialize from another Clifford by sharing the underlying PauliList
         if isinstance(data, Clifford):
             self._table = data._table
 
@@ -118,20 +118,21 @@ class Clifford(BaseOperator, AdjointMixin):
         elif isinstance(data, ScalarOp):
             if not data.num_qubits or not data.is_unitary():
                 raise QiskitError("Can only initialize from N-qubit identity ScalarOp.")
-            self._table = StabilizerTable(np.eye(2 * data.num_qubits, dtype=bool))
+            # TODO: Make this more efficient by initializ
+            self._table = PauliList(2 * data.num_qubits * [data.num_qubits * 'I'])
 
         # Initialize from a QuantumCircuit or Instruction object
         elif isinstance(data, (QuantumCircuit, Instruction)):
             self._table = Clifford.from_circuit(data)._table
 
-        # Initialize StabilizerTable directly from the data
+        # Initialize PauliList directly from the data
         else:
-            self._table = StabilizerTable(data)
+            self._table = PauliList(data)
 
             # Validate table is a symplectic matrix
-            if validate and not Clifford._is_symplectic(self._table.array):
+            if validate and not Clifford._is_symplectic(self.array):
                 raise QiskitError(
-                    "Invalid Clifford. Input StabilizerTable is not a valid symplectic matrix."
+                    "Invalid Clifford. Input PauliTable is not a valid symplectic matrix."
                 )
 
         # Initialize BaseOperator
@@ -154,47 +155,70 @@ class Clifford(BaseOperator, AdjointMixin):
     # ---------------------------------------------------------------------
     def __getitem__(self, key):
         """Return a stabilizer Pauli row"""
+        # TODO: Deprecate 
         return self._table.__getitem__(key)
 
     def __setitem__(self, key, value):
         """Set a stabilizer Pauli row"""
+        # TODO: Deprecate
         self._table.__setitem__(key, value)
 
     @property
+    def array(self):
+        """Return Clifford sympectic matrix"""
+        return np.hstack([self._table.x, self._table.z])
+
+    @array.setter
+    def array(self, value):
+        self._table.x = value[:, 0:self.num_qubits]
+        self._table.z = value[:, self.num_qubits:2*self.num_qubits]
+
+    @property
+    def phase(self):
+        """Return Clifford phase vector"""
+        return self._table.phase // 2
+
+    @phase.setter
+    def phase(self, value):
+        """Return Clifford phase vector"""
+        self._table.phase = 2 * value
+
+    @property
     def table(self):
-        """Return StabilizerTable"""
+        """Return PauliList"""
         return self._table
 
     @table.setter
     def table(self, value):
         """Set the stabilizer table"""
         # Note this setter cannot change the size of the Clifford
-        # It can only replace the contents of the StabilizerTable with
-        # another StabilizerTable of the same size.
-        if not isinstance(value, StabilizerTable):
-            value = StabilizerTable(value)
-        self._table._array[:, :] = value._table._array
-        self._table._phase[:] = value._table._phase
+        # It can only replace the contents of the PauliList with
+        # another PauliList of the same size.
+        if not isinstance(value, PauliList):
+            value = PauliList(value)
+        self._table._x[:] = value._x
+        self._table._z[:] = value._z
+        self._table._phase[:] = value._phase
 
     @property
     def stabilizer(self):
-        """Return the stabilizer block of the StabilizerTable."""
-        return StabilizerTable(self._table[self.num_qubits : 2 * self.num_qubits])
+        """Return the stabilizer block of the PauliList."""
+        return PauliList(self._table[self.num_qubits : 2 * self.num_qubits])
 
     @stabilizer.setter
     def stabilizer(self, value):
-        """Set the value of stabilizer block of the StabilizerTable"""
+        """Set the value of stabilizer block of the PauliList"""
         inds = slice(self.num_qubits, 2 * self.num_qubits)
         self._table.__setitem__(inds, value)
 
     @property
     def destabilizer(self):
-        """Return the destabilizer block of the StabilizerTable."""
-        return StabilizerTable(self._table[0 : self.num_qubits])
+        """Return the destabilizer block of the PauliList."""
+        return PauliList(self._table[0 : self.num_qubits])
 
     @destabilizer.setter
     def destabilizer(self, value):
-        """Set the value of destabilizer block of the StabilizerTable"""
+        """Set the value of destabilizer block of the PauliList"""
         inds = slice(0, self.num_qubits)
         self._table.__setitem__(inds, value)
 
@@ -207,7 +231,7 @@ class Clifford(BaseOperator, AdjointMixin):
         # A valid Clifford is always unitary, so this function is really
         # checking that the underlying Stabilizer table array is a valid
         # Clifford array.
-        return Clifford._is_symplectic(self.table.array)
+        return Clifford._is_symplectic(self.array)
 
     # ---------------------------------------------------------------------
     # BaseOperator Abstract Methods
@@ -265,25 +289,26 @@ class Clifford(BaseOperator, AdjointMixin):
         other = self._pad_with_identity(other, qargs)
 
         if front:
-            table1 = self.table
-            table2 = other.table
+            cliff1 = self
+            cliff2 = other
         else:
-            table1 = other.table
-            table2 = self.table
+            cliff1 = other
+            cliff2 = self
 
         num_qubits = self.num_qubits
 
-        array1 = table1.array.astype(int)
-        phase1 = table1.phase.astype(int)
-
-        array2 = table2.array.astype(int)
-        phase2 = table2.phase.astype(int)
+        # TODO: This coudl be updated to use x and z blocks of PauliList directly
+        # so that we dont need to generate these full arrays
+        array1 = cliff1.array.astype(int)
+        array2 = cliff2.array.astype(int)
 
         # Update Pauli table
-        pauli = StabilizerTable(array2.dot(array1) % 2)
+        array = array2.dot(array1) % 2
+        pauli_x = array[:, 0:num_qubits]
+        pauli_z = array[:, num_qubits:2*num_qubits]
 
         # Add phases
-        phase = np.mod(array2.dot(phase1) + phase2, 2)
+        phase = np.mod(array2.dot(cliff1.phase) + cliff2.phase, 2)
 
         # Correcting for phase due to Pauli multiplication
         ifacts = np.zeros(2 * num_qubits, dtype=int)
@@ -291,8 +316,8 @@ class Clifford(BaseOperator, AdjointMixin):
         for k in range(2 * num_qubits):
 
             row2 = array2[k]
-            x2 = table2.X[k]
-            z2 = table2.Z[k]
+            x2 = cliff2.table.x[k]
+            z2 = cliff2.table.z[k]
 
             # Adding a factor of i for each Y in the image of an operator under the
             # first operation, since Y=iXZ
@@ -321,7 +346,12 @@ class Clifford(BaseOperator, AdjointMixin):
 
         phase = np.mod(phase + p, 2)
 
-        return Clifford(StabilizerTable(pauli, phase), validate=False)
+        ret_table = self._table.copy()
+        ret_table._x = pauli_x
+        ret_table._z = pauli_z
+        ret_table.phase = 2 * phase
+
+        return Clifford(ret_table, validate=False)
 
     # ---------------------------------------------------------------------
     # Representation conversions
@@ -493,16 +523,16 @@ class Clifford(BaseOperator, AdjointMixin):
         if method in ["A", "T"]:
             # Apply inverse
             # Update table
-            tmp = ret.destabilizer.X.copy()
-            ret.destabilizer.X = ret.stabilizer.Z.T
-            ret.destabilizer.Z = ret.destabilizer.Z.T
-            ret.stabilizer.X = ret.stabilizer.X.T
-            ret.stabilizer.Z = tmp.T
+            tmp = ret.destabilizer.x.copy()
+            ret.destabilizer.x = ret.stabilizer.z.T
+            ret.destabilizer.z = ret.destabilizer.z.T
+            ret.stabilizer.x = ret.stabilizer.x.T
+            ret.stabilizer.z = tmp.T
             # Update phase
-            ret.table.phase ^= clifford.dot(ret).table.phase
+            ret.phase ^= clifford.dot(ret).phase
         if method in ["C", "T"]:
             # Apply conjugate
-            ret.table.phase ^= np.mod(np.sum(ret.table.X & ret.table.Z, axis=1), 2).astype(bool)
+            ret.phase ^= np.mod(np.sum(ret.table.x & ret.table.z, axis=1), 2).astype(bool)
         return ret
 
     def _pad_with_identity(self, clifford, qargs):
@@ -515,13 +545,13 @@ class Clifford(BaseOperator, AdjointMixin):
         inds = list(qargs) + [self.num_qubits + i for i in qargs]
 
         # Pad Pauli array
-        pauli = clifford.table.array
+        pauli = clifford.array
         for i, pos in enumerate(qargs):
-            padded.table.array[inds, pos] = pauli[:, i]
-            padded.table.array[inds, self.num_qubits + pos] = pauli[:, clifford.num_qubits + i]
+            padded.array[inds, pos] = pauli[:, i]
+            padded.array[inds, self.num_qubits + pos] = pauli[:, clifford.num_qubits + i]
 
         # Pad phase
-        padded.table.phase[inds] = clifford.table.phase
+        padded.phase[inds] = clifford.phase
 
         return padded
 
