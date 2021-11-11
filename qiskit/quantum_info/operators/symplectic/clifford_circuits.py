@@ -13,9 +13,9 @@
 Circuit simulation for the Clifford class.
 """
 
-from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.barrier import Barrier
+from qiskit.exceptions import QiskitError
 
 
 def _append_circuit(clifford, circuit, qargs=None):
@@ -135,7 +135,7 @@ def _append_x(clifford, qubit):
     Returns:
         Clifford: the updated Clifford.
     """
-    clifford.table.phase ^= clifford.table.Z[:, qubit]
+    clifford.paulis.phase += clifford.paulis.z[:, qubit].astype(int) * 2
     return clifford
 
 
@@ -149,9 +149,9 @@ def _append_y(clifford, qubit):
     Returns:
         Clifford: the updated Clifford.
     """
-    x = clifford.table.X[:, qubit]
-    z = clifford.table.Z[:, qubit]
-    clifford.table.phase ^= x ^ z
+    x = clifford.paulis.x[:, qubit]
+    z = clifford.paulis.z[:, qubit]
+    clifford.paulis.phase += (x ^ z).astype(int) * 2
     return clifford
 
 
@@ -165,7 +165,7 @@ def _append_z(clifford, qubit):
     Returns:
         Clifford: the updated Clifford.
     """
-    clifford.table.phase ^= clifford.table.X[:, qubit]
+    clifford.paulis.phase += clifford.paulis.x[:, qubit].astype(int) * 2
     return clifford
 
 
@@ -179,12 +179,15 @@ def _append_h(clifford, qubit):
     Returns:
         Clifford: the updated Clifford.
     """
-    x = clifford.table.X[:, qubit]
-    z = clifford.table.Z[:, qubit]
-    clifford.table.phase ^= x & z
+    x = clifford.paulis.x[:, qubit]
+    z = clifford.paulis.z[:, qubit]
+
+    count_y = clifford.paulis._count_y()
+    clifford.paulis.phase += (x & z).astype(int) * 2
     tmp = x.copy()
     x[:] = z
     z[:] = tmp
+    clifford.paulis.phase += clifford.paulis._count_y() - count_y
     return clifford
 
 
@@ -198,11 +201,13 @@ def _append_s(clifford, qubit):
     Returns:
         Clifford: the updated Clifford.
     """
-    x = clifford.table.X[:, qubit]
-    z = clifford.table.Z[:, qubit]
+    x = clifford.paulis.x[:, qubit]
+    z = clifford.paulis.z[:, qubit]
 
-    clifford.table.phase ^= x & z
+    count_y = clifford.paulis._count_y()
+    clifford.paulis.phase += (x & z).astype(int) * 2
     z ^= x
+    clifford.paulis.phase += clifford.paulis._count_y() - count_y
     return clifford
 
 
@@ -216,10 +221,13 @@ def _append_sdg(clifford, qubit):
     Returns:
         Clifford: the updated Clifford.
     """
-    x = clifford.table.X[:, qubit]
-    z = clifford.table.Z[:, qubit]
-    clifford.table.phase ^= x & ~z
+    x = clifford.paulis.x[:, qubit]
+    z = clifford.paulis.z[:, qubit]
+
+    count_y = clifford.paulis._count_y()
+    clifford.paulis.phase += (x & ~z).astype(int) * 2
     z ^= x
+    clifford.paulis.phase += clifford.paulis._count_y() - count_y
     return clifford
 
 
@@ -235,11 +243,14 @@ def _append_v(clifford, qubit):
     Returns:
         Clifford: the updated Clifford.
     """
-    x = clifford.table.X[:, qubit]
-    z = clifford.table.Z[:, qubit]
+    x = clifford.paulis.x[:, qubit]
+    z = clifford.paulis.z[:, qubit]
+
+    count_y = clifford.paulis._count_y()
     tmp = x.copy()
     x ^= z
     z[:] = tmp
+    clifford.paulis.phase += clifford.paulis._count_y() - count_y
     return clifford
 
 
@@ -255,11 +266,14 @@ def _append_w(clifford, qubit):
     Returns:
         Clifford: the updated Clifford.
     """
-    x = clifford.table.X[:, qubit]
-    z = clifford.table.Z[:, qubit]
+    x = clifford.paulis.x[:, qubit]
+    z = clifford.paulis.z[:, qubit]
+
+    count_y = clifford.paulis._count_y()
     tmp = z.copy()
     z ^= x
     x[:] = tmp
+    clifford.paulis.phase += clifford.paulis._count_y() - count_y
     return clifford
 
 
@@ -274,13 +288,16 @@ def _append_cx(clifford, control, target):
     Returns:
         Clifford: the updated Clifford.
     """
-    x0 = clifford.table.X[:, control]
-    z0 = clifford.table.Z[:, control]
-    x1 = clifford.table.X[:, target]
-    z1 = clifford.table.Z[:, target]
-    clifford.table.phase ^= (x1 ^ z0 ^ True) & z1 & x0
+    x0 = clifford.paulis.x[:, control]
+    z0 = clifford.paulis.z[:, control]
+    x1 = clifford.paulis.x[:, target]
+    z1 = clifford.paulis.z[:, target]
+
+    count_y = clifford.paulis._count_y()
+    clifford.paulis.phase += ((x1 ^ z0 ^ True) & z1 & x0).astype(int) * 2
     x1 ^= x0
     z0 ^= z1
+    clifford.paulis.phase += clifford.paulis._count_y() - count_y
     return clifford
 
 
@@ -295,13 +312,16 @@ def _append_cz(clifford, control, target):
     Returns:
         Clifford: the updated Clifford.
     """
-    x0 = clifford.table.X[:, control]
-    z0 = clifford.table.Z[:, control]
-    x1 = clifford.table.X[:, target]
-    z1 = clifford.table.Z[:, target]
-    clifford.table.phase ^= x0 & x1 & (z0 ^ z1)
+    x0 = clifford.paulis.x[:, control]
+    z0 = clifford.paulis.z[:, control]
+    x1 = clifford.paulis.x[:, target]
+    z1 = clifford.paulis.z[:, target]
+
+    count_y = clifford.paulis._count_y()
+    clifford.paulis.phase += (x0 & x1 & (z0 ^ z1)).astype(int) * 2
     z1 ^= x0
     z0 ^= x1
+    clifford.paulis.phase += clifford.paulis._count_y() - count_y
     return clifford
 
 
@@ -316,6 +336,8 @@ def _append_swap(clifford, qubit0, qubit1):
     Returns:
         Clifford: the updated Clifford.
     """
-    clifford.table.X[:, [qubit0, qubit1]] = clifford.table.X[:, [qubit1, qubit0]]
-    clifford.table.Z[:, [qubit0, qubit1]] = clifford.table.Z[:, [qubit1, qubit0]]
+    count_y = clifford.paulis._count_y()
+    clifford.paulis.x[:, [qubit0, qubit1]] = clifford.paulis.x[:, [qubit1, qubit0]]
+    clifford.paulis.z[:, [qubit0, qubit1]] = clifford.paulis.z[:, [qubit1, qubit0]]
+    clifford.paulis.phase += clifford.paulis._count_y() - count_y
     return clifford

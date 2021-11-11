@@ -15,20 +15,23 @@ Circuit synthesis for the Clifford class.
 # pylint: disable=invalid-name
 
 from itertools import product
+
 import numpy as np
-from qiskit.exceptions import QiskitError
+
 from qiskit.circuit import QuantumCircuit
-from qiskit.quantum_info.operators.symplectic.pauli import Pauli
+from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.operators.symplectic.clifford import Clifford
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
-    _append_z,
-    _append_x,
+    _append_cx,
     _append_h,
     _append_s,
+    _append_swap,
     _append_v,
     _append_w,
-    _append_cx,
-    _append_swap,
+    _append_x,
+    _append_z,
 )
+from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 
 
 def decompose_clifford(clifford, method=None):
@@ -364,8 +367,9 @@ def _set_qubit_x_true(clifford, circuit, qubit):
     This is done by permuting columns l > qubit or if necessary applying
     a Hadamard
     """
-    x = clifford.destabilizer.X[qubit]
-    z = clifford.destabilizer.Z[qubit]
+    # get destabilizer
+    x = clifford.paulis.x[qubit]
+    z = clifford.paulis.z[qubit]
 
     if x[qubit]:
         return
@@ -393,8 +397,9 @@ def _set_row_x_zero(clifford, circuit, qubit):
 
     This is done by applying CNOTS assumes k<=N and A[k][k]=1
     """
-    x = clifford.destabilizer.X[qubit]
-    z = clifford.destabilizer.Z[qubit]
+    # get destabilizer
+    x = clifford.paulis.x[qubit]
+    z = clifford.paulis.z[qubit]
 
     # Check X first
     for i in range(qubit + 1, clifford.num_qubits):
@@ -426,8 +431,10 @@ def _set_row_z_zero(clifford, circuit, qubit):
     and _set_row_x_zero has been called first
     """
 
-    x = clifford.stabilizer.X[qubit]
-    z = clifford.stabilizer.Z[qubit]
+    num_qubits = clifford.num_qubits
+    # get stabilizer
+    x = clifford.paulis.x[qubit + num_qubits]
+    z = clifford.paulis.z[qubit + num_qubits]
 
     # check whether Zs need to be set to zero:
     if np.any(z[qubit + 1 :]):
@@ -621,10 +628,8 @@ def _calc_decoupling(pauli_x, pauli_z, qubit_list, min_qubit, num_qubits, cliff)
     circ = QuantumCircuit(num_qubits)
 
     # decouple_cliff is initialized to an identity clifford
-    decouple_cliff = cliff.copy()
-    num_qubits = decouple_cliff.num_qubits
-    decouple_cliff.table.phase = np.zeros(2 * num_qubits)
-    decouple_cliff.table.array = np.eye(2 * num_qubits)
+    num_qubits = cliff.num_qubits
+    decouple_cliff = Clifford(np.eye(2 * num_qubits))
 
     qubit0 = min_qubit  # The qubit for the symplectic Gaussian elimination
 

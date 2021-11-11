@@ -820,6 +820,7 @@ class TestCliffordOperators(QiskitTestCase):
         """Test to verify the correct clifford name is maintained
         after converting to instruction"""
         clifford = random_clifford(num_qubits, seed=777)
+        print(clifford.to_instruction().name, str(clifford))
         self.assertEqual(clifford.to_instruction().name, str(clifford))
 
 

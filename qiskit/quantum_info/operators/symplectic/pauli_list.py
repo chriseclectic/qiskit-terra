@@ -24,7 +24,9 @@ from qiskit.quantum_info.operators.mixins import GroupMixin, LinearMixin
 from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
-from qiskit.quantum_info.operators.symplectic.stabilizer_table import StabilizerTable
+from qiskit.quantum_info.operators.symplectic.stabilizer_table import (
+    StabilizerTable,
+)
 
 
 class PauliList(BasePauli, LinearMixin, GroupMixin):
@@ -260,6 +262,17 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
     @z.setter
     def z(self, val):
         self._z[:] = val
+
+    @property
+    def array(self):
+        """Boolean array for x and z"""
+        return np.column_stack((self.x, self.z))
+
+    @array.setter
+    def array(self, val):
+        num_qubits = val.shape[1] // 2
+        self._x[:] = val[:, 0:num_qubits]
+        self._z[:] = val[:, num_qubits : 2 * num_qubits]
 
     # ---------------------------------------------------------------------
     # Size Properties
@@ -881,6 +894,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         Raises:
             QiskitError: if the Clifford number of qubits and qargs don't match.
         """
+        # pylint: disable=cyclic-import
         from qiskit.circuit import Instruction, QuantumCircuit
         from qiskit.quantum_info.operators.symplectic.clifford import Clifford
 

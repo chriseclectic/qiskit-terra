@@ -457,7 +457,7 @@ class TestStabilizerState(QiskitTestCase):
                 self.assertEqual(value, target)
                 probs = stab.probabilities(decimals=3)
                 target = np.array([0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125])
-                self.assertTrue(np.allclose(probs, target))
+                np.testing.assert_allclose(probs, target)
 
     def test_probablities_dict_ghz(self):
         """Test probabilities and probabilities_dict method of a subsystem of qubits"""
@@ -475,7 +475,7 @@ class TestStabilizerState(QiskitTestCase):
             self.assertEqual(value, target)
             probs = stab.probabilities()
             target = np.array([0.5, 0, 0, 0, 0, 0, 0, 0.5])
-            self.assertTrue(np.allclose(probs, target))
+            np.testing.assert_allclose(probs, target)
 
         # 3-qubit qargs
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
@@ -485,7 +485,7 @@ class TestStabilizerState(QiskitTestCase):
                 self.assertDictAlmostEqual(probs, target)
                 probs = stab.probabilities(qargs)
                 target = np.array([0.5, 0, 0, 0, 0, 0, 0, 0.5])
-                self.assertTrue(np.allclose(probs, target))
+                np.testing.assert_allclose(probs, target)
 
         # 2-qubit qargs
         for qargs in [[0, 1], [2, 1], [1, 0], [1, 2]]:
@@ -495,7 +495,7 @@ class TestStabilizerState(QiskitTestCase):
                 self.assertDictAlmostEqual(probs, target)
                 probs = stab.probabilities(qargs)
                 target = np.array([0.5, 0, 0, 0.5])
-                self.assertTrue(np.allclose(probs, target))
+                np.testing.assert_allclose(probs, target)
 
         # 1-qubit qargs
         for qargs in [[0], [1], [2]]:
@@ -505,7 +505,7 @@ class TestStabilizerState(QiskitTestCase):
                 self.assertDictAlmostEqual(probs, target)
                 probs = stab.probabilities(qargs)
                 target = np.array([0.5, 0.5])
-                self.assertTrue(np.allclose(probs, target))
+                np.testing.assert_allclose(probs, target)
 
     @combine(num_qubits=[2, 3, 4])
     def test_probs_random_subsystem(self, num_qubits):
@@ -522,7 +522,7 @@ class TestStabilizerState(QiskitTestCase):
                 probs_dict = stab.probabilities_dict(qargs)
                 target = Statevector(qc).probabilities(qargs)
                 target_dict = Statevector(qc).probabilities_dict(qargs)
-                self.assertTrue(np.allclose(probs, target))
+                np.testing.assert_allclose(probs, target, atol=1e-5)
                 self.assertDictAlmostEqual(probs_dict, target_dict)
 
     def test_expval_single_qubit(self):
