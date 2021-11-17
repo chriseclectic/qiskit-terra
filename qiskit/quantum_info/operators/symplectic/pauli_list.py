@@ -263,17 +263,6 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
     def z(self, val):
         self._z[:] = val
 
-    @property
-    def array(self):
-        """Boolean array for x and z"""
-        return np.column_stack((self.x, self.z))
-
-    @array.setter
-    def array(self, val):
-        num_qubits = val.shape[1] // 2
-        self._x[:] = val[:, 0:num_qubits]
-        self._z[:] = val[:, num_qubits : 2 * num_qubits]
-
     # ---------------------------------------------------------------------
     # Size Properties
     # ---------------------------------------------------------------------

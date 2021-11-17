@@ -345,10 +345,10 @@ class Clifford(BaseOperator, AdjointMixin):
 
         num_qubits = self.num_qubits
 
-        array1 = paulis1.array.astype(int)
+        array1 = np.column_stack((paulis1.x, paulis1.z)).astype(int)
         phase1 = paulis1.phase.astype(int)
 
-        array2 = paulis2.array.astype(int)
+        array2 = np.column_stack((paulis2.x, paulis2.z)).astype(int)
         phase2 = paulis2.phase.astype(int)
 
         # Update Pauli list
