@@ -235,10 +235,11 @@ class StabilizerState(QuantumState):
         # Check if there is a stabilizer that anti-commutes with an odd number of qubits
         # If so the expectation value is 0
         for p in range(num_qubits):
-            stab = self.clifford.paulis[num_qubits : 2 * num_qubits]
+            stab_x = self.clifford.tableau(stabilizer=True, destabilizer=False, x=True, z=False)
+            stab_z = self.clifford.tableau(stabilizer=True, destabilizer=False, x=False, z=True)
             num_anti = 0
-            num_anti += np.count_nonzero(pauli.z & stab.x[p])
-            num_anti += np.count_nonzero(pauli.x & stab.z[p])
+            num_anti += np.count_nonzero(pauli.z & stab_x[p])
+            num_anti += np.count_nonzero(pauli.x & stab_z[p])
             if num_anti % 2 == 1:
                 return 0
 
@@ -248,19 +249,19 @@ class StabilizerState(QuantumState):
         pauli_z = (pauli.z).copy()  # Make a copy of pauli.z
         for p in range(num_qubits):
             # Check if destabilizer anti-commutes
-            destab = self.clifford.paulis[0:num_qubits]
+            destab_x = self.clifford.tableau(stabilizer=False, destabilizer=True, x=True, z=False)
+            destab_z = self.clifford.tableau(stabilizer=False, destabilizer=True, x=False, z=True)
             num_anti = 0
-            num_anti += np.count_nonzero(pauli.z & destab.x[p])
-            num_anti += np.count_nonzero(pauli.x & destab.z[p])
+            num_anti += np.count_nonzero(pauli.z & destab_x[p])
+            num_anti += np.count_nonzero(pauli.x & destab_z[p])
             if num_anti % 2 == 0:
                 continue
 
             # If anti-commutes multiply Pauli by stabilizer
-            stab = self.clifford.paulis[num_qubits : 2 * num_qubits]
             phase += self.clifford.paulis.phase[p + num_qubits]
-            phase += np.count_nonzero(stab.z[p] & stab.x[p])
-            phase += 2 * np.count_nonzero(pauli_z & stab.x[p])
-            pauli_z = pauli_z ^ stab.z[p]
+            phase += np.count_nonzero(stab_z[p] & stab_x[p])
+            phase += 2 * np.count_nonzero(pauli_z & stab_x[p])
+            pauli_z = pauli_z ^ stab_z[p]
 
         if phase % 4 != 0:
             return -1

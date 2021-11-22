@@ -288,9 +288,9 @@ class Clifford(BaseOperator, AdjointMixin):
         if x and z:
             return np.hstack((self.paulis.x[indices], self.paulis.z[indices]))
         elif x:
-            return np.paulis.x[indices].copy()
+            return self.paulis.x[indices].copy()
         elif z:
-            return np.paulis.z[indices].copy()
+            return self.paulis.z[indices].copy()
         else:
             return np.array([], dtype=bool)
 
