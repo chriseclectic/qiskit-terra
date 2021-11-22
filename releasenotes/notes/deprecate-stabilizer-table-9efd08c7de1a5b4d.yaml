@@ -1,4 +1,4 @@
-----
+---
 deprecations:
   - |
     The :class:`~qiskit.quantum_info.PauliList` is deprecated and will be removed in a future
