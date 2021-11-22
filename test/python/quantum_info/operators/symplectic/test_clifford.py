@@ -15,33 +15,34 @@
 
 import unittest
 from test import combine
-from ddt import ddt
 
 import numpy as np
+from ddt import ddt
 
-from qiskit.test import QiskitTestCase
-from qiskit.exceptions import QiskitError
-from qiskit.circuit import Gate, QuantumRegister, QuantumCircuit
+from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import (
+    CXGate,
+    CZGate,
+    HGate,
     IGate,
+    SdgGate,
+    SGate,
+    SwapGate,
     XGate,
     YGate,
     ZGate,
-    HGate,
-    SGate,
-    SdgGate,
-    CXGate,
-    CZGate,
-    SwapGate,
 )
-from qiskit.quantum_info.operators import Clifford, Operator
-from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_circuit
+from qiskit.exceptions import QiskitError
+from qiskit.quantum_info import Clifford, Operator, PauliList, random_clifford
+from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
+    _append_circuit,
+)
 from qiskit.quantum_info.synthesis.clifford_decompose import (
     decompose_clifford_ag,
     decompose_clifford_bm,
     decompose_clifford_greedy,
 )
-from qiskit.quantum_info import random_clifford
+from qiskit.test import QiskitTestCase
 
 
 class VGate(Gate):
@@ -181,23 +182,42 @@ class TestCliffordGates(QiskitTestCase):
             "v": "+Y",
             "w": "+Z",
         }
+        target_paulis = {
+            "i": PauliList(["+X", "+Z"]),
+            "id": PauliList(["+X", "+Z"]),
+            "iden": PauliList(["+X", "+Z"]),
+            "x": PauliList(["+X", "-Z"]),
+            "y": PauliList(["-X", "-Z"]),
+            "z": PauliList(["-X", "+Z"]),
+            "h": PauliList(["+Z", "+X"]),
+            "s": PauliList(["+Y", "+Z"]),
+            "sdg": PauliList(["-Y", "+Z"]),
+            "sinv": PauliList(["-Y", "+Z"]),
+            "v": PauliList(["+Y", "+X"]),
+            "w": PauliList(["+Z", "+Y"]),
+        }
 
         for gate_name in ("i", "id", "iden", "x", "y", "z", "h", "s", "sdg", "v", "w"):
             with self.subTest(msg="append gate %s" % gate_name):
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff = _append_circuit(cliff, gate_name, [0])
-                value_table = cliff.table._array
-                value_phase = cliff.table._phase
-                value_stabilizer = cliff.stabilizer.to_labels()
-                value_destabilizer = cliff.destabilizer.to_labels()
-                self.assertTrue(np.all(np.array(value_table == target_table[gate_name])))
-                self.assertTrue(np.all(np.array(value_phase == target_phase[gate_name])))
-                self.assertTrue(
-                    np.all(np.array(value_stabilizer == [target_stabilizer[gate_name]]))
-                )
-                self.assertTrue(
-                    np.all(np.array(value_destabilizer == [target_destabilizer[gate_name]]))
-                )
+                # Deprecated methods
+                with self.assertWarns(DeprecationWarning):
+                    value_table = cliff.table._array
+                    value_phase = cliff.table._phase
+                    value_stabilizer = cliff.stabilizer.to_labels()
+                    value_destabilizer = cliff.destabilizer.to_labels()
+                    self.assertTrue(np.all(np.array(value_table == target_table[gate_name])))
+                    self.assertTrue(np.all(np.array(value_phase == target_phase[gate_name])))
+                    self.assertTrue(
+                        np.all(np.array(value_stabilizer == [target_stabilizer[gate_name]]))
+                    )
+                    self.assertTrue(
+                        np.all(np.array(value_destabilizer == [target_destabilizer[gate_name]]))
+                    )
+                # New methods
+                paulis = cliff.paulis
+                self.assertEqual(paulis, target_paulis[gate_name])
 
     def test_1_qubit_identity_relations(self):
         """Tests identity relations for 1-qubit gates"""
@@ -752,11 +772,11 @@ class TestCliffordOperators(QiskitTestCase):
             self.assertEqual(keys_value, keys_target)
 
             stabilizer_value = set(value["stabilizer"])
-            stabilizer_target = {"+IIIZ", "+IIZI", "+IZII", "+ZIII"}
+            stabilizer_target = {"IIIZ", "IIZI", "IZII", "ZIII"}
             self.assertEqual(stabilizer_value, stabilizer_target)
 
             destabilizer_value = set(value["destabilizer"])
-            destabilizer_target = {"+IIIX", "+IIXI", "+IXII", "+XIII"}
+            destabilizer_target = {"IIIX", "IIXI", "IXII", "XIII"}
             self.assertEqual(destabilizer_value, destabilizer_target)
 
         with self.subTest(msg="bell"):
@@ -771,11 +791,11 @@ class TestCliffordOperators(QiskitTestCase):
             self.assertEqual(keys_value, keys_target)
 
             stabilizer_value = set(value["stabilizer"])
-            stabilizer_target = {"+XX", "+ZZ"}
+            stabilizer_target = {"XX", "ZZ"}
             self.assertEqual(stabilizer_value, stabilizer_target)
 
             destabilizer_value = set(value["destabilizer"])
-            destabilizer_target = {"+IZ", "+XI"}
+            destabilizer_target = {"IZ", "XI"}
             self.assertEqual(destabilizer_value, destabilizer_target)
 
     def test_from_dict(self):
@@ -820,7 +840,6 @@ class TestCliffordOperators(QiskitTestCase):
         """Test to verify the correct clifford name is maintained
         after converting to instruction"""
         clifford = random_clifford(num_qubits, seed=777)
-        print(clifford.to_instruction().name, str(clifford))
         self.assertEqual(clifford.to_instruction().name, str(clifford))
 
 

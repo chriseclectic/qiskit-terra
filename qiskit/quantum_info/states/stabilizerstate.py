@@ -81,7 +81,9 @@ class StabilizerState(QuantumState):
         super().__init__(op_shape=OpShape.auto(num_qubits_r=self._data.num_qubits, num_qubits_l=0))
 
     def __eq__(self, other):
-        return self._data.stabilizer == other._data.stabilizer
+        return (
+            self._data.tableau(destabilizer=False) == other._data.tableau(destabilizer=False)
+        ).all()
 
     def __repr__(self):
         return f"StabilizerState({self._data.stabilizer})"
@@ -233,10 +235,10 @@ class StabilizerState(QuantumState):
         # Check if there is a stabilizer that anti-commutes with an odd number of qubits
         # If so the expectation value is 0
         for p in range(num_qubits):
-            stab = self.clifford.stabilizer
+            stab = self.clifford.paulis[num_qubits : 2 * num_qubits]
             num_anti = 0
-            num_anti += np.count_nonzero(pauli.z & stab.X[p])
-            num_anti += np.count_nonzero(pauli.x & stab.Z[p])
+            num_anti += np.count_nonzero(pauli.z & stab.x[p])
+            num_anti += np.count_nonzero(pauli.x & stab.z[p])
             if num_anti % 2 == 1:
                 return 0
 
@@ -246,19 +248,19 @@ class StabilizerState(QuantumState):
         pauli_z = (pauli.z).copy()  # Make a copy of pauli.z
         for p in range(num_qubits):
             # Check if destabilizer anti-commutes
-            destab = self.clifford.destabilizer
+            destab = self.clifford.paulis[0:num_qubits]
             num_anti = 0
-            num_anti += np.count_nonzero(pauli.z & destab.X[p])
-            num_anti += np.count_nonzero(pauli.x & destab.Z[p])
+            num_anti += np.count_nonzero(pauli.z & destab.x[p])
+            num_anti += np.count_nonzero(pauli.x & destab.z[p])
             if num_anti % 2 == 0:
                 continue
 
             # If anti-commutes multiply Pauli by stabilizer
-            stab = self.clifford.stabilizer
-            phase += 2 * self.clifford.table.phase[p + num_qubits]
-            phase += np.count_nonzero(stab.Z[p] & stab.X[p])
-            phase += 2 * np.count_nonzero(pauli_z & stab.X[p])
-            pauli_z = pauli_z ^ stab.Z[p]
+            stab = self.clifford.paulis[num_qubits : 2 * num_qubits]
+            phase += self.clifford.paulis.phase[p + num_qubits]
+            phase += np.count_nonzero(stab.z[p] & stab.x[p])
+            phase += 2 * np.count_nonzero(pauli_z & stab.x[p])
+            pauli_z = pauli_z ^ stab.z[p]
 
         if phase % 4 != 0:
             return -1
@@ -438,7 +440,7 @@ class StabilizerState(QuantumState):
 
         num_qubits = self.clifford.num_qubits
         paulis = self.clifford.paulis
-        stab_x = self.clifford.stabilizer.X
+        stab_x = self.clifford.paulis.x[num_qubits : 2 * num_qubits]
 
         # Check if there exists stabilizer anticommuting with Z[qubit]
         # in this case the measurement outcome is random
@@ -559,7 +561,9 @@ class StabilizerState(QuantumState):
         for i in range(len(qubits)):
             qubit = qubits[len(qubits) - i - 1]
             if outcome[i] == "X":
-                is_deterministic = not any(ret.clifford.stabilizer.X[:, qubit])
+                is_deterministic = not any(
+                    ret.clifford.paulis.x[self.num_qubits : 2 * self.num_qubits, qubit]
+                )
                 if is_deterministic:
                     single_qubit_outcome = ret._measure_and_update(qubit, 0)
                     if single_qubit_outcome:

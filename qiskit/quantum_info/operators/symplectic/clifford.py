@@ -33,12 +33,11 @@ from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.symplectic.stabilizer_table import (
     StabilizerTable,
 )
+from qiskit.utils.deprecation import deprecate_function
 
 from .clifford_circuits import _append_circuit
 from .pauli_list import PauliList
 from .stabilizer_table import StabilizerTable
-
-# from qiskit.utils.deprecation import deprecate_function
 
 
 class Clifford(BaseOperator, AdjointMixin):
@@ -47,16 +46,16 @@ class Clifford(BaseOperator, AdjointMixin):
     **Representation**
 
     An *N*-qubit Clifford operator is stored as a length *2N*
-    :class:`~qiskit.quantum_info.StabilizerTable` using the convention
+    :class:`~qiskit.quantum_info.PauliList` using the convention
     from reference [1].
 
     * Rows 0 to *N-1* are the *destabilizer* group generators
     * Rows *N* to *2N-1* are the *stabilizer* group generators.
 
-    The internal :class:`~qiskit.quantum_info.StabilizerTable` for the Clifford
-    can be accessed using the :attr:`table` attribute. The destabilizer or
+    The internal :class:`~qiskit.quantum_info.PauliList` for the Clifford
+    can be accessed using the :attr:`paulis` attribute. The destabilizer or
     stabilizer rows can each be accessed as a length-N Stabilizer table using
-    :attr:`destabilizer` and :attr:`stabilizer` attributes.
+    :meth:`tableau` with `destabilizer` or `stablizer` options respectively.
 
     A more easily human readable representation of the Clifford operator can
     be obtained by calling the :meth:`to_dict` method. This representation is
@@ -76,10 +75,13 @@ class Clifford(BaseOperator, AdjointMixin):
         # Print the Clifford
         print(cliff)
 
-        # Print the Clifford destabilizer rows
+        # Print the PauliList in the Clifford
+        print(cliff.paulis)
+
+        # DEPRECATED: Print the Clifford destabilizer rows
         print(cliff.destabilizer)
 
-        # Print the Clifford stabilizer rows
+        # DEPRECATED: Print the Clifford stabilizer rows
         print(cliff.stabilizer)
 
     **Circuit Conversion**
@@ -155,7 +157,7 @@ class Clifford(BaseOperator, AdjointMixin):
 
             # Validate table is a symplectic matrix
             # TODO: remove table below
-            if validate and not Clifford._is_symplectic(self.table.array):
+            if validate and not Clifford._is_symplectic(self.tableau()):
                 raise QiskitError(
                     "Invalid Clifford. Input PauliList is not a valid symplectic matrix."
                 )
@@ -167,9 +169,11 @@ class Clifford(BaseOperator, AdjointMixin):
         return f"Clifford({repr(self.paulis)})"
 
     def __str__(self):
-        return "Clifford: Stabilizer = {}, Destabilizer = {}".format(
-            str(self.stabilizer.to_labels()), str(self.destabilizer.to_labels())
-        )
+        labels = self.paulis.to_labels()
+        num_qubits = self.num_qubits
+        stabilizer = slice(num_qubits, 2 * num_qubits)
+        destabilizer = slice(0, num_qubits)
+        return f"Clifford: Stabilizer = {labels[stabilizer]}, Destabilizer = {labels[destabilizer]}"
 
     def __eq__(self, other):
         """Check if two Clifford tables are equal"""
@@ -200,25 +204,22 @@ class Clifford(BaseOperator, AdjointMixin):
         self._paulis._x[:, :] = value._paulis._x
         self._paulis._phase[:] = value._paulis._phase
 
-    # TODO: DEPRECATE table, stabilizer, and destabilizer
     @property
-    # @deprecate_function(
-    #    "The Clifford.table method is deprecated as of Qiskit Terra 0.19.0 "
-    #    "and will be removed no sooner than 3 months after the releasedate. "
-    #    "Use Clifford.paulis method instead.",
-    # )
+    @deprecate_function(
+        "The Clifford.table method is deprecated as of Qiskit Terra 0.19.0 "
+        "and will be removed no sooner than 3 months after the releasedate. "
+        "Use Clifford.paulis method instead.",  # pylint:disable=bad-docstring-quotes
+    )
     def table(self):
         """Return StabilizerTable"""
-        return StabilizerTable(
-            np.column_stack((self.paulis.x, self.paulis.z)), phase=self.paulis.phase // 2
-        )
+        return StabilizerTable(self.tableau(), phase=self.paulis.phase // 2)
 
     @table.setter
-    # @deprecate_function(
-    #    "The Clifford.table method is deprecated as of Qiskit Terra 0.19.0 "
-    #    "and will be removed no sooner than 3 months after the releasedate. "
-    #    "Use Clifford.paulis method instead.",
-    # )
+    @deprecate_function(
+        "The Clifford.table method is deprecated as of Qiskit Terra 0.19.0 "
+        "and will be removed no sooner than 3 months after the releasedate. "
+        "Use Clifford.paulis method instead.",  # pylint:disable=bad-docstring-quotes
+    )
     def table(self, value):
         """Set the stabilizer table"""
         # Note this setter cannot change the size of the Clifford
@@ -229,46 +230,77 @@ class Clifford(BaseOperator, AdjointMixin):
         self.paulis(value)
 
     @property
-    # @deprecate_function(
-    #    "The Clifford.stabilizer method is deprecated as of Qiskit Terra 0.19.0 "
-    #    "and will be removed no sooner than 3 months after the releasedate. "
-    #    "Use Clifford.paulis method instead.",
-    # )
+    @deprecate_function(
+        "The Clifford.stabilizer method is deprecated as of Qiskit Terra 0.19.0 "
+        "and will be removed no sooner than 3 months after the releasedate. "
+        "Use Clifford.tableau method instead.",  # pylint:disable=bad-docstring-quotes
+    )
     def stabilizer(self):
         """Return the stabilizer block of the StabilizerTable."""
         return StabilizerTable(self.table[self.num_qubits : 2 * self.num_qubits])
 
     @stabilizer.setter
-    # @deprecate_function(
-    #    "The Clifford.stabilizer method is deprecated as of Qiskit Terra 0.19.0 "
-    #    "and will be removed no sooner than 3 months after the releasedate. "
-    #    "Use Clifford.paulis method instead.",
-    # )
+    @deprecate_function(
+        "The Clifford.stabilizer method is deprecated as of Qiskit Terra 0.19.0 "
+        "and will be removed no sooner than 3 months after the releasedate. "
+        "Use Clifford.paulis method instead.",  # pylint:disable=bad-docstring-quotes
+    )
     def stabilizer(self, value):
         """Set the value of stabilizer block of the StabilizerTable"""
         inds = slice(self.num_qubits, 2 * self.num_qubits)
         self._paulis.__setitem__(inds, value)
 
     @property
-    # @deprecate_function(
-    #    "The Clifford.destabilizer method is deprecated as of Qiskit Terra 0.19.0 "
-    #    "and will be removed no sooner than 3 months after the releasedate. "
-    #    "Use Clifford.paulis method instead.",
-    # )
+    @deprecate_function(
+        "The Clifford.destabilizer method is deprecated as of Qiskit Terra 0.19.0 "
+        "and will be removed no sooner than 3 months after the releasedate. "
+        "Use Clifford.tableau method instead.",  # pylint:disable=bad-docstring-quotes
+    )
     def destabilizer(self):
         """Return the destabilizer block of the StabilizerTable."""
         return StabilizerTable(self.table[0 : self.num_qubits])
 
     @destabilizer.setter
-    # @deprecate_function(
-    #    "The Clifford.destabilizer method is deprecated as of Qiskit Terra 0.19.0 "
-    #    "and will be removed no sooner than 3 months after the releasedate. "
-    #    "Use Clifford.paulis method instead.",
-    # )
+    @deprecate_function(
+        "The Clifford.destabilizer method is deprecated as of Qiskit Terra 0.19.0 "
+        "and will be removed no sooner than 3 months after the releasedate. "
+        "Use Clifford.paulis method instead.",  # pylint:disable=bad-docstring-quotes
+    )
     def destabilizer(self, value):
         """Set the value of destabilizer block of the StabilizerTable"""
         inds = slice(0, self.num_qubits)
         self._paulis.__setitem__(inds, value)
+
+    def tableau(self, x=True, z=True, stabilizer=True, destabilizer=True):
+        """Return the tableau of the Clifford.
+
+        Args:
+            x (bool): if True, it returns x component.
+            z (bool): if True, it returns z component.
+            stabilizer (bool): if True, it returns stablizer component.
+            destabilizer (bool): if True, it returns destabilizer component.
+
+        Returns:
+            np.ndarray: the tableau
+
+        """
+        if stabilizer and destabilizer:
+            indices = slice(None)
+        elif stabilizer:
+            indices = slice(self.num_qubits, 2 * self.num_qubits)
+        elif destabilizer:
+            indices = slice(0, self.num_qubits)
+        else:
+            return np.array([], dtype=bool)
+
+        if x and z:
+            return np.hstack((self.paulis.x[indices], self.paulis.z[indices]))
+        elif x:
+            return np.paulis.x[indices].copy()
+        elif z:
+            return np.paulis.z[indices].copy()
+        else:
+            return np.array([], dtype=bool)
 
     # ---------------------------------------------------------------------
     # Utility Operator methods
@@ -279,7 +311,7 @@ class Clifford(BaseOperator, AdjointMixin):
         # A valid Clifford is always unitary, so this function is really
         # checking that the underlying Stabilizer table array is a valid
         # Clifford array.
-        return Clifford._is_symplectic(self.table.array)
+        return Clifford._is_symplectic(self.tableau())
 
     # ---------------------------------------------------------------------
     # BaseOperator Abstract Methods
@@ -307,10 +339,12 @@ class Clifford(BaseOperator, AdjointMixin):
     @classmethod
     def _tensor(cls, a, b):
         # Pad stabilizers and destabilizers
-        destab = b.destabilizer.expand(a.num_qubits * "I") + a.destabilizer.tensor(
-            b.num_qubits * "I"
-        )
-        stab = b.stabilizer.expand(a.num_qubits * "I") + a.stabilizer.tensor(b.num_qubits * "I")
+        destab = b.paulis[0 : b.num_qubits].expand(a.num_qubits * "I") + a.paulis[
+            0 : a.num_qubits
+        ].tensor(b.num_qubits * "I")
+        stab = b.paulis[b.num_qubits : 2 * b.num_qubits].expand(a.num_qubits * "I") + a.paulis[
+            a.num_qubits : 2 * a.num_qubits
+        ].tensor(b.num_qubits * "I")
 
         # Add the padded table
         return Clifford(destab + stab, validate=False)
@@ -337,19 +371,19 @@ class Clifford(BaseOperator, AdjointMixin):
         other = self._pad_with_identity(other, qargs)
 
         if front:
-            paulis1 = self.paulis
-            paulis2 = other.paulis
+            clifford1 = self
+            clifford2 = other
         else:
-            paulis1 = other.paulis
-            paulis2 = self.paulis
+            clifford1 = other
+            clifford2 = self
 
         num_qubits = self.num_qubits
 
-        array1 = np.column_stack((paulis1.x, paulis1.z)).astype(int)
-        phase1 = paulis1.phase.astype(int)
+        array1 = clifford1.tableau().astype(int)
+        phase1 = clifford1.paulis.phase
 
-        array2 = np.column_stack((paulis2.x, paulis2.z)).astype(int)
-        phase2 = paulis2.phase.astype(int)
+        array2 = clifford2.tableau().astype(int)
+        phase2 = clifford2.paulis.phase
 
         # Update Pauli list
         composed_array = array2.dot(array1) % 2
@@ -403,16 +437,17 @@ class Clifford(BaseOperator, AdjointMixin):
 
     def to_dict(self):
         """Return dictionary representation of Clifford object."""
+        num_qubits = self.num_qubits
         return {
-            "stabilizer": self.stabilizer.to_labels(),
-            "destabilizer": self.destabilizer.to_labels(),
+            "stabilizer": self.paulis[num_qubits : 2 * num_qubits].to_labels(),
+            "destabilizer": self.paulis[0:num_qubits].to_labels(),
         }
 
     @staticmethod
     def from_dict(obj):
         """Load a Clifford from a dictionary"""
-        destabilizer = StabilizerTable.from_labels(obj.get("destabilizer"))
-        stabilizer = StabilizerTable.from_labels(obj.get("stabilizer"))
+        destabilizer = PauliList(obj.get("destabilizer"))
+        stabilizer = PauliList(obj.get("stabilizer"))
         return Clifford(destabilizer + stabilizer)
 
     def to_matrix(self):
@@ -575,16 +610,18 @@ class Clifford(BaseOperator, AdjointMixin):
         if method in ["A", "T"]:
             # Apply inverse
             # Update table
+            ret.paulis._phase -= ret.paulis._count_y()
             tmp = ret.paulis.x[destabilizer].copy()
             ret.paulis.x[destabilizer] = ret.paulis.z[stabilizer].T
             ret.paulis.z[destabilizer] = ret.paulis.z[destabilizer].T
             ret.paulis.x[stabilizer] = ret.paulis.x[stabilizer].T
             ret.paulis.z[stabilizer] = tmp.T
+            ret.paulis._phase -= ret.paulis._count_y()
             # Update phase
-            ret.paulis.phase ^= clifford.dot(ret).paulis.phase
+            ret.paulis.phase += clifford.dot(ret).paulis.phase
         if method in ["C", "T"]:
             # Apply conjugate
-            ret.paulis._phase ^= np.mod(np.sum(ret.paulis.x & ret.paulis.z, axis=1), 2).astype(bool)
+            ret.paulis.phase += 2 * np.sum(ret.paulis.x & ret.paulis.z, axis=1)
         return ret
 
     def _pad_with_identity(self, clifford, qargs):

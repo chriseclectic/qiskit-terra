@@ -87,7 +87,9 @@ def decompose_clifford_bm(clifford):
     num_qubits = clifford.num_qubits
 
     if num_qubits == 1:
-        return _decompose_clifford_1q(clifford.table.array, clifford.table.phase)
+        return _decompose_clifford_1q(
+            np.hstack((clifford.paulis.x, clifford.paulis.z)), clifford.paulis.phase * 2
+        )
 
     clifford_name = str(clifford)
 
@@ -105,8 +107,8 @@ def decompose_clifford_bm(clifford):
     ret_circ = QuantumCircuit(num_qubits, name=clifford_name)
     for qubit in range(num_qubits):
         pos = [qubit, qubit + num_qubits]
-        table = clifford.table.array[pos][:, pos]
-        phase = clifford.table.phase[pos]
+        table = np.hstack((clifford.paulis.x, clifford.paulis.z))[pos][:, pos]
+        phase = clifford.paulis.phase[pos] * 2
         circ = _decompose_clifford_1q(table, phase)
         if len(circ) > 0:
             ret_circ.append(circ, [qubit])
@@ -134,7 +136,9 @@ def decompose_clifford_ag(clifford):
     """
     # Use 1-qubit decomposition method
     if clifford.num_qubits == 1:
-        return _decompose_clifford_1q(clifford.table.array, clifford.table.phase)
+        return _decompose_clifford_1q(
+            np.hstack((clifford.paulis.x, clifford.paulis.z)), clifford.paulis.phase * 2
+        )
 
     # Compose a circuit which we will convert to an instruction
     circuit = QuantumCircuit(clifford.num_qubits, name=str(clifford))
@@ -153,10 +157,10 @@ def decompose_clifford_ag(clifford):
         _set_row_z_zero(clifford_cpy, circuit, i)
 
     for i in range(clifford.num_qubits):
-        if clifford_cpy.destabilizer.phase[i]:
+        if clifford_cpy.paulis.phase[i]:
             _append_z(clifford_cpy, i)
             circuit.z(i)
-        if clifford_cpy.stabilizer.phase[i]:
+        if clifford_cpy.paulis.phase[i + clifford.num_qubits]:
             _append_x(clifford_cpy, i)
             circuit.x(i)
     # Next we invert the circuit to undo the row reduction and return the
@@ -181,8 +185,8 @@ def _decompose_clifford_1q(pauli, phase):
         circuit.x(0)
     elif destab_phase and stab_phase:
         circuit.y(0)
-    destab_phase_label = "-" if destab_phase else "+"
-    stab_phase_label = "-" if stab_phase else "+"
+    destab_phase_label = "-" if destab_phase else ""
+    stab_phase_label = "-" if stab_phase else ""
 
     destab_x, destab_z = pauli[0]
     stab_x, stab_z = pauli[1]
@@ -285,7 +289,7 @@ def _rank2(a, b, c, d):
 
 def _cx_cost2(clifford):
     """Return CX cost of a 2-qubit clifford."""
-    U = clifford.table.array
+    U = np.hstack((clifford.paulis.x, clifford.paulis.z))
     r00 = _rank2(U[0, 0], U[0, 2], U[2, 0], U[2, 2])
     r01 = _rank2(U[0, 1], U[0, 3], U[2, 1], U[2, 3])
     if r00 == 2:
@@ -296,7 +300,7 @@ def _cx_cost2(clifford):
 def _cx_cost3(clifford):
     """Return CX cost of a 3-qubit clifford."""
     # pylint: disable=too-many-return-statements,too-many-boolean-expressions
-    U = clifford.table.array
+    U = np.hstack((clifford.paulis.x, clifford.paulis.z))
     n = 3
     # create information transfer matrices R1, R2
     R1 = np.zeros((n, n), dtype=int)
@@ -527,8 +531,8 @@ def decompose_clifford_greedy(clifford):
 
     # Add the phases (Pauli gates) to the Clifford circuit
     for qubit in range(num_qubits):
-        stab = clifford_cpy.stabilizer.phase[qubit]
-        destab = clifford_cpy.destabilizer.phase[qubit]
+        stab = clifford_cpy.paulis.phase[qubit + num_qubits] * 2
+        destab = clifford_cpy.paulis.phase[qubit] * 2
         if destab and stab:
             circ.y(qubit)
         elif not destab and stab:

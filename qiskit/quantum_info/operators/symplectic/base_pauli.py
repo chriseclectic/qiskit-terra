@@ -283,23 +283,25 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
         # pylint: disable=cyclic-import
         from qiskit.quantum_info.operators.symplectic.pauli import Pauli
-        from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
+        from qiskit.quantum_info.operators.symplectic.pauli_list import (
+            PauliList,
+        )
 
         # Get action of Pauli's from Clifford
         adj = other.adjoint()
         pauli_list = []
         for z in self._z[:, idx]:
             pauli = Pauli("I" * num_act)
-            for row in adj.stabilizer[z]:
-                pauli.compose(Pauli((row.Z[0], row.X[0], 2 * row.phase[0])), inplace=True)
+            for row in adj.paulis[other.num_qubits : 2 * other.num_qubits][z]:
+                pauli.compose(row, inplace=True)
             pauli_list.append(pauli)
         ret.dot(PauliList(pauli_list), qargs=qargs, inplace=True)
 
         pauli_list = []
         for x in self._x[:, idx]:
             pauli = Pauli("I" * num_act)
-            for row in adj.destabilizer[x]:
-                pauli.compose(Pauli((row.Z[0], row.X[0], 2 * row.phase[0])), inplace=True)
+            for row in adj.paulis[0 : other.num_qubits][x]:
+                pauli.compose(row, inplace=True)
             pauli_list.append(pauli)
         ret.dot(PauliList(pauli_list), qargs=qargs, inplace=True)
         return ret
