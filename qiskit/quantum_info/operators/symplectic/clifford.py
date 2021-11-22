@@ -30,9 +30,6 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.mixins import AdjointMixin, generate_apidocs
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
-from qiskit.quantum_info.operators.symplectic.stabilizer_table import (
-    StabilizerTable,
-)
 from qiskit.utils.deprecation import deprecate_function
 
 from .clifford_circuits import _append_circuit
@@ -629,7 +626,7 @@ class Clifford(BaseOperator, AdjointMixin):
         if qargs is None:
             return clifford
 
-        padded = Clifford(StabilizerTable(np.eye(2 * self.num_qubits, dtype=bool)), validate=False)
+        padded = Clifford(np.eye(2 * self.num_qubits, dtype=bool), validate=False)
 
         inds = list(qargs) + [self.num_qubits + i for i in qargs]
 
