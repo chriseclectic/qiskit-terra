@@ -75,11 +75,6 @@ class Clifford(BaseOperator, AdjointMixin):
         # Print the PauliList in the Clifford
         print(cliff.paulis)
 
-        # DEPRECATED: Print the Clifford destabilizer rows
-        print(cliff.destabilizer)
-
-        # DEPRECATED: Print the Clifford stabilizer rows
-        print(cliff.stabilizer)
 
     **Circuit Conversion**
 

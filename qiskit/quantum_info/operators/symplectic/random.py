@@ -16,7 +16,7 @@ Random symplectic operator functions
 import numpy as np
 from numpy.random import default_rng
 
-from qiskit.utils import deprecate_function
+from qiskit.utils.deprecation import deprecate_function
 
 from .clifford import Clifford
 from .pauli import Pauli
