@@ -225,7 +225,7 @@ class Clifford(BaseOperator, AdjointMixin):
     @deprecate_function(
         "The Clifford.stabilizer method is deprecated as of Qiskit Terra 0.19.0 "
         "and will be removed no sooner than 3 months after the releasedate. "
-        "Use Clifford.tableau method instead.",  # pylint:disable=bad-docstring-quotes
+        "Use Clifford.stabilizer_tableau or Clifford.paulis method instead.",  # pylint:disable=bad-docstring-quotes
     )
     def stabilizer(self):
         """Return the stabilizer block of the StabilizerTable."""
@@ -246,7 +246,7 @@ class Clifford(BaseOperator, AdjointMixin):
     @deprecate_function(
         "The Clifford.destabilizer method is deprecated as of Qiskit Terra 0.19.0 "
         "and will be removed no sooner than 3 months after the releasedate. "
-        "Use Clifford.tableau method instead.",  # pylint:disable=bad-docstring-quotes
+        "Use Clifford.destabilizer_tableau or Clifford.paulis method instead.",  # pylint:disable=bad-docstring-quotes
     )
     def destabilizer(self):
         """Return the destabilizer block of the StabilizerTable."""
@@ -342,6 +342,22 @@ class Clifford(BaseOperator, AdjointMixin):
         """
         return self.tableau(x=False, stabilizer=False)
 
+    def stabilizer_list(self):
+        """Return the PauliList corresponding to stabilizer
+
+        Returns:
+            PauliList: the Pauli list
+        """
+        return self[self.num_qubits : 2 * self.num_qubits]
+
+    def destabilizer_list(self):
+        """Return the PauliList corresponding to destabilizer
+
+        Returns:
+            PauliList: the Pauli list
+        """
+        return self[0 : self.num_qubits]
+
     # ---------------------------------------------------------------------
     # Utility Operator methods
     # ---------------------------------------------------------------------
@@ -379,12 +395,12 @@ class Clifford(BaseOperator, AdjointMixin):
     @classmethod
     def _tensor(cls, a, b):
         # Pad stabilizers and destabilizers
-        destab = b.paulis[0 : b.num_qubits].expand(a.num_qubits * "I") + a.paulis[
-            0 : a.num_qubits
-        ].tensor(b.num_qubits * "I")
-        stab = b.paulis[b.num_qubits : 2 * b.num_qubits].expand(a.num_qubits * "I") + a.paulis[
-            a.num_qubits : 2 * a.num_qubits
-        ].tensor(b.num_qubits * "I")
+        destab = b.destabilizer_list().expand(a.num_qubits * "I") + a.destabilizer_list().tensor(
+            b.num_qubits * "I"
+        )
+        stab = b.stabilizer_list().expand(a.num_qubits * "I") + a.stabilizer_list().tensor(
+            b.num_qubits * "I"
+        )
 
         # Add the padded table
         return Clifford(destab + stab, validate=False)
@@ -418,6 +434,8 @@ class Clifford(BaseOperator, AdjointMixin):
             clifford2 = self
 
         num_qubits = self.num_qubits
+        x_indices = slice(0, num_qubits)
+        z_indices = slice(num_qubits, 2 * num_qubits)
 
         array1 = clifford1.tableau().astype(int)
         phase1 = clifford1.paulis.phase
@@ -428,8 +446,8 @@ class Clifford(BaseOperator, AdjointMixin):
         # Update Pauli list
         composed_array = array2.dot(array1) % 2
         pauli = PauliList.from_symplectic(
-            z=composed_array[:, num_qubits : 2 * num_qubits],
-            x=composed_array[:, 0:num_qubits],
+            z=composed_array[:, z_indices],
+            x=composed_array[:, x_indices],
             phase=array2.dot(phase1) + phase2,
         )
 
@@ -439,8 +457,8 @@ class Clifford(BaseOperator, AdjointMixin):
         for k in range(2 * num_qubits):
 
             row2 = array2[k]
-            x2 = array2[k, 0:num_qubits]
-            z2 = array2[k, num_qubits : 2 * num_qubits]
+            x2 = array2[k, x_indices]
+            z2 = array2[k, z_indices]
 
             # Adding a factor of i for each Y in the image of an operator under the
             # first operation, since Y=iXZ
@@ -477,10 +495,9 @@ class Clifford(BaseOperator, AdjointMixin):
 
     def to_dict(self):
         """Return dictionary representation of Clifford object."""
-        num_qubits = self.num_qubits
         return {
-            "stabilizer": self.paulis[num_qubits : 2 * num_qubits].to_labels(),
-            "destabilizer": self.paulis[0:num_qubits].to_labels(),
+            "stabilizer": self.stabilizer_list().to_labels(),
+            "destabilizer": self.destabilizer_list().to_labels(),
         }
 
     @staticmethod

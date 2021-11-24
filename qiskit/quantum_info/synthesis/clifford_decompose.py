@@ -87,9 +87,7 @@ def decompose_clifford_bm(clifford):
     num_qubits = clifford.num_qubits
 
     if num_qubits == 1:
-        return _decompose_clifford_1q(
-            np.hstack((clifford.paulis.x, clifford.paulis.z)), clifford.paulis.phase * 2
-        )
+        return _decompose_clifford_1q(clifford.tableau(), clifford.paulis.phase * 2)
 
     clifford_name = str(clifford)
 
@@ -107,7 +105,7 @@ def decompose_clifford_bm(clifford):
     ret_circ = QuantumCircuit(num_qubits, name=clifford_name)
     for qubit in range(num_qubits):
         pos = [qubit, qubit + num_qubits]
-        table = np.hstack((clifford.paulis.x, clifford.paulis.z))[pos][:, pos]
+        table = clifford.tableau()[pos][:, pos]
         phase = clifford.paulis.phase[pos] * 2
         circ = _decompose_clifford_1q(table, phase)
         if len(circ) > 0:
@@ -289,7 +287,7 @@ def _rank2(a, b, c, d):
 
 def _cx_cost2(clifford):
     """Return CX cost of a 2-qubit clifford."""
-    U = np.hstack((clifford.paulis.x, clifford.paulis.z))
+    U = clifford.tableau()
     r00 = _rank2(U[0, 0], U[0, 2], U[2, 0], U[2, 2])
     r01 = _rank2(U[0, 1], U[0, 3], U[2, 1], U[2, 3])
     if r00 == 2:
@@ -300,7 +298,7 @@ def _cx_cost2(clifford):
 def _cx_cost3(clifford):
     """Return CX cost of a 3-qubit clifford."""
     # pylint: disable=too-many-return-statements,too-many-boolean-expressions
-    U = np.hstack((clifford.paulis.x, clifford.paulis.z))
+    U = clifford.tableau()
     n = 3
     # create information transfer matrices R1, R2
     R1 = np.zeros((n, n), dtype=int)

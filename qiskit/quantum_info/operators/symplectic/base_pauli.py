@@ -290,9 +290,12 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         # Get action of Pauli's from Clifford
         adj = other.adjoint()
         pauli_list = []
+        stabilizer = slice(other.num_qubits, 2 * other.num_qubits)
+        destabilizer = slice(0, other.num_qubits)
+
         for z in self._z[:, idx]:
             pauli = Pauli("I" * num_act)
-            for row in adj.paulis[other.num_qubits : 2 * other.num_qubits][z]:
+            for row in adj.paulis[stabilizer][z]:
                 pauli.compose(row, inplace=True)
             pauli_list.append(pauli)
         ret.dot(PauliList(pauli_list), qargs=qargs, inplace=True)
@@ -300,7 +303,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         pauli_list = []
         for x in self._x[:, idx]:
             pauli = Pauli("I" * num_act)
-            for row in adj.paulis[0 : other.num_qubits][x]:
+            for row in adj.paulis[destabilizer][x]:
                 pauli.compose(row, inplace=True)
             pauli_list.append(pauli)
         ret.dot(PauliList(pauli_list), qargs=qargs, inplace=True)
