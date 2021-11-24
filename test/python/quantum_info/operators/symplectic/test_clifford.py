@@ -196,6 +196,76 @@ class TestCliffordGates(QiskitTestCase):
             "v": PauliList(["+Y", "+X"]),
             "w": PauliList(["+Z", "+Y"]),
         }
+        target_tableau = {
+            "i": np.array([[True, False], [False, True]], dtype=bool),
+            "id": np.array([[True, False], [False, True]], dtype=bool),
+            "iden": np.array([[True, False], [False, True]], dtype=bool),
+            "x": np.array([[True, False], [False, True]], dtype=bool),
+            "y": np.array([[True, False], [False, True]], dtype=bool),
+            "z": np.array([[True, False], [False, True]], dtype=bool),
+            "h": np.array([[False, True], [True, False]], dtype=bool),
+            "s": np.array([[True, True], [False, True]], dtype=bool),
+            "sdg": np.array([[True, True], [False, True]], dtype=bool),
+            "sinv": np.array([[True, True], [False, True]], dtype=bool),
+            "v": np.array([[True, True], [True, False]], dtype=bool),
+            "w": np.array([[False, True], [True, True]], dtype=bool),
+        }
+        target_tableau_z = {
+            "i": np.array([[False], [True]], dtype=bool),
+            "id": np.array([[False], [True]], dtype=bool),
+            "iden": np.array([[False], [True]], dtype=bool),
+            "x": np.array([[False], [True]], dtype=bool),
+            "y": np.array([[False], [True]], dtype=bool),
+            "z": np.array([[False], [True]], dtype=bool),
+            "h": np.array([[True], [False]], dtype=bool),
+            "s": np.array([[True], [True]], dtype=bool),
+            "sdg": np.array([[True], [True]], dtype=bool),
+            "sinv": np.array([[True], [True]], dtype=bool),
+            "v": np.array([[True], [False]], dtype=bool),
+            "w": np.array([[True], [True]], dtype=bool),
+        }
+        target_tableau_x = {
+            "i": np.array([[True], [False]], dtype=bool),
+            "id": np.array([[True], [False]], dtype=bool),
+            "iden": np.array([[True], [False]], dtype=bool),
+            "x": np.array([[True], [False]], dtype=bool),
+            "y": np.array([[True], [False]], dtype=bool),
+            "z": np.array([[True], [False]], dtype=bool),
+            "h": np.array([[False], [True]], dtype=bool),
+            "s": np.array([[True], [False]], dtype=bool),
+            "sdg": np.array([[True], [False]], dtype=bool),
+            "sinv": np.array([[True], [False]], dtype=bool),
+            "v": np.array([[True], [True]], dtype=bool),
+            "w": np.array([[False], [True]], dtype=bool),
+        }
+        target_tableau_stabilizer = {
+            "i": np.array([[False, True]], dtype=bool),
+            "id": np.array([[False, True]], dtype=bool),
+            "iden": np.array([[False, True]], dtype=bool),
+            "x": np.array([[False, True]], dtype=bool),
+            "y": np.array([[False, True]], dtype=bool),
+            "z": np.array([[False, True]], dtype=bool),
+            "h": np.array([[True, False]], dtype=bool),
+            "s": np.array([[False, True]], dtype=bool),
+            "sdg": np.array([[False, True]], dtype=bool),
+            "sinv": np.array([[False, True]], dtype=bool),
+            "v": np.array([[True, False]], dtype=bool),
+            "w": np.array([[True, True]], dtype=bool),
+        }
+        target_tableau_destabilizer = {
+            "i": np.array([[True, False]], dtype=bool),
+            "id": np.array([[True, False]], dtype=bool),
+            "iden": np.array([[True, False]], dtype=bool),
+            "x": np.array([[True, False]], dtype=bool),
+            "y": np.array([[True, False]], dtype=bool),
+            "z": np.array([[True, False]], dtype=bool),
+            "h": np.array([[False, True]], dtype=bool),
+            "s": np.array([[True, True]], dtype=bool),
+            "sdg": np.array([[True, True]], dtype=bool),
+            "sinv": np.array([[True, True]], dtype=bool),
+            "v": np.array([[True, True]], dtype=bool),
+            "w": np.array([[False, True]], dtype=bool),
+        }
 
         for gate_name in ("i", "id", "iden", "x", "y", "z", "h", "s", "sdg", "v", "w"):
             with self.subTest(msg="append gate %s" % gate_name):
@@ -216,8 +286,16 @@ class TestCliffordGates(QiskitTestCase):
                         np.all(np.array(value_destabilizer == [target_destabilizer[gate_name]]))
                     )
                 # New methods
-                paulis = cliff.paulis
-                self.assertEqual(paulis, target_paulis[gate_name])
+                self.assertEqual(cliff.paulis, target_paulis[gate_name])
+                np.testing.assert_array_equal(cliff.tableau(), target_tableau[gate_name])
+                np.testing.assert_array_equal(cliff.tableau(z=False), target_tableau_x[gate_name])
+                np.testing.assert_array_equal(cliff.tableau(x=False), target_tableau_z[gate_name])
+                np.testing.assert_array_equal(
+                    cliff.tableau(destabilizer=False), target_tableau_stabilizer[gate_name]
+                )
+                np.testing.assert_array_equal(
+                    cliff.tableau(stabilizer=False), target_tableau_destabilizer[gate_name]
+                )
 
     def test_1_qubit_identity_relations(self):
         """Tests identity relations for 1-qubit gates"""
