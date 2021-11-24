@@ -273,7 +273,7 @@ class Clifford(BaseOperator, AdjointMixin):
             destabilizer (bool): if True, it returns destabilizer component.
 
         Returns:
-            np.ndarray: the tableau
+            np.ndarray: the tableau.
 
         """
         if stabilizer and destabilizer:
@@ -293,6 +293,54 @@ class Clifford(BaseOperator, AdjointMixin):
             return self.paulis.z[indices].copy()
         else:
             return np.array([], dtype=bool)
+
+    def stabilizer_tableau(self):
+        """Return the tableau of the Clifford's stabilizer.
+
+        Returns:
+            np.ndarray: the tableau.
+        """
+        return self.tableau(destabilizer=False)
+
+    def destabilizer_tableau(self):
+        """Return the tableau of the Clifford's destabilizer.
+
+        Returns:
+            np.ndarray: the tableau.
+        """
+        return self.tableau(stabilizer=False)
+
+    def stabilizer_x_tableau(self):
+        """Return the tableau of the Clifford's stabilizer x components.
+
+        Returns:
+            np.ndarray: the tableau.
+        """
+        return self.tableau(z=False, destabilizer=False)
+
+    def stabilizer_z_tableau(self):
+        """Return the tableau of the Clifford's stabilizer z components.
+
+        Returns:
+            np.ndarray: the tableau.
+        """
+        return self.tableau(x=False, destabilizer=False)
+
+    def destabilizer_x_tableau(self):
+        """Return the tableau of the Clifford's stabilizer x components.
+
+        Returns:
+            np.ndarray: the tableau.
+        """
+        return self.tableau(z=False, stabilizer=False)
+
+    def destabilizer_z_tableau(self):
+        """Return the tableau of the Clifford's stabilizer z components.
+
+        Returns:
+            np.ndarray: the tableau.
+        """
+        return self.tableau(x=False, stabilizer=False)
 
     # ---------------------------------------------------------------------
     # Utility Operator methods

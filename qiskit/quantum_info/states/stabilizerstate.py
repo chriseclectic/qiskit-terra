@@ -81,9 +81,7 @@ class StabilizerState(QuantumState):
         super().__init__(op_shape=OpShape.auto(num_qubits_r=self._data.num_qubits, num_qubits_l=0))
 
     def __eq__(self, other):
-        return (
-            self._data.tableau(destabilizer=False) == other._data.tableau(destabilizer=False)
-        ).all()
+        return (self._data.stabilizer_tableau() == other._data.stabilizer_tableau()).all()
 
     def __repr__(self):
         return f"StabilizerState({self._data.stabilizer})"
@@ -235,8 +233,8 @@ class StabilizerState(QuantumState):
         # Check if there is a stabilizer that anti-commutes with an odd number of qubits
         # If so the expectation value is 0
         for p in range(num_qubits):
-            stab_x = self.clifford.tableau(stabilizer=True, destabilizer=False, x=True, z=False)
-            stab_z = self.clifford.tableau(stabilizer=True, destabilizer=False, x=False, z=True)
+            stab_x = self.clifford.stabilizer_x_tableau()
+            stab_z = self.clifford.stabilizer_z_tableau()
             num_anti = 0
             num_anti += np.count_nonzero(pauli.z & stab_x[p])
             num_anti += np.count_nonzero(pauli.x & stab_z[p])
@@ -249,8 +247,8 @@ class StabilizerState(QuantumState):
         pauli_z = (pauli.z).copy()  # Make a copy of pauli.z
         for p in range(num_qubits):
             # Check if destabilizer anti-commutes
-            destab_x = self.clifford.tableau(stabilizer=False, destabilizer=True, x=True, z=False)
-            destab_z = self.clifford.tableau(stabilizer=False, destabilizer=True, x=False, z=True)
+            destab_x = self.clifford.destabilizer_x_tableau()
+            destab_z = self.clifford.destabilizer_z_tableau()
             num_anti = 0
             num_anti += np.count_nonzero(pauli.z & destab_x[p])
             num_anti += np.count_nonzero(pauli.x & destab_z[p])

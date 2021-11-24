@@ -266,6 +266,62 @@ class TestCliffordGates(QiskitTestCase):
             "v": np.array([[True, True]], dtype=bool),
             "w": np.array([[False, True]], dtype=bool),
         }
+        target_tableau_stabilizer_x = {
+            "i": np.array([[False]], dtype=bool),
+            "id": np.array([[False]], dtype=bool),
+            "iden": np.array([[False]], dtype=bool),
+            "x": np.array([[False]], dtype=bool),
+            "y": np.array([[False]], dtype=bool),
+            "z": np.array([[False]], dtype=bool),
+            "h": np.array([[True]], dtype=bool),
+            "s": np.array([[False]], dtype=bool),
+            "sdg": np.array([[False]], dtype=bool),
+            "sinv": np.array([[False]], dtype=bool),
+            "v": np.array([[True]], dtype=bool),
+            "w": np.array([[True]], dtype=bool),
+        }
+        target_tableau_stabilizer_z = {
+            "i": np.array([[True]], dtype=bool),
+            "id": np.array([[True]], dtype=bool),
+            "iden": np.array([[True]], dtype=bool),
+            "x": np.array([[True]], dtype=bool),
+            "y": np.array([[True]], dtype=bool),
+            "z": np.array([[True]], dtype=bool),
+            "h": np.array([[False]], dtype=bool),
+            "s": np.array([[True]], dtype=bool),
+            "sdg": np.array([[True]], dtype=bool),
+            "sinv": np.array([[True]], dtype=bool),
+            "v": np.array([[False]], dtype=bool),
+            "w": np.array([[True]], dtype=bool),
+        }
+        target_tableau_destabilizer_x = {
+            "i": np.array([[True]], dtype=bool),
+            "id": np.array([[True]], dtype=bool),
+            "iden": np.array([[True]], dtype=bool),
+            "x": np.array([[True]], dtype=bool),
+            "y": np.array([[True]], dtype=bool),
+            "z": np.array([[True]], dtype=bool),
+            "h": np.array([[False]], dtype=bool),
+            "s": np.array([[True]], dtype=bool),
+            "sdg": np.array([[True]], dtype=bool),
+            "sinv": np.array([[True]], dtype=bool),
+            "v": np.array([[True]], dtype=bool),
+            "w": np.array([[False]], dtype=bool),
+        }
+        target_tableau_destabilizer_z = {
+            "i": np.array([[False]], dtype=bool),
+            "id": np.array([[False]], dtype=bool),
+            "iden": np.array([[False]], dtype=bool),
+            "x": np.array([[False]], dtype=bool),
+            "y": np.array([[False]], dtype=bool),
+            "z": np.array([[False]], dtype=bool),
+            "h": np.array([[True]], dtype=bool),
+            "s": np.array([[True]], dtype=bool),
+            "sdg": np.array([[True]], dtype=bool),
+            "sinv": np.array([[True]], dtype=bool),
+            "v": np.array([[True]], dtype=bool),
+            "w": np.array([[True]], dtype=bool),
+        }
 
         for gate_name in ("i", "id", "iden", "x", "y", "z", "h", "s", "sdg", "v", "w"):
             with self.subTest(msg="append gate %s" % gate_name):
@@ -291,10 +347,22 @@ class TestCliffordGates(QiskitTestCase):
                 np.testing.assert_array_equal(cliff.tableau(z=False), target_tableau_x[gate_name])
                 np.testing.assert_array_equal(cliff.tableau(x=False), target_tableau_z[gate_name])
                 np.testing.assert_array_equal(
-                    cliff.tableau(destabilizer=False), target_tableau_stabilizer[gate_name]
+                    cliff.stabilizer_tableau(), target_tableau_stabilizer[gate_name]
                 )
                 np.testing.assert_array_equal(
-                    cliff.tableau(stabilizer=False), target_tableau_destabilizer[gate_name]
+                    cliff.stabilizer_x_tableau(), target_tableau_stabilizer_x[gate_name]
+                )
+                np.testing.assert_array_equal(
+                    cliff.stabilizer_z_tableau(), target_tableau_stabilizer_z[gate_name]
+                )
+                np.testing.assert_array_equal(
+                    cliff.destabilizer_tableau(), target_tableau_destabilizer[gate_name]
+                )
+                np.testing.assert_array_equal(
+                    cliff.destabilizer_x_tableau(), target_tableau_destabilizer_x[gate_name]
+                )
+                np.testing.assert_array_equal(
+                    cliff.destabilizer_z_tableau(), target_tableau_destabilizer_z[gate_name]
                 )
 
     def test_1_qubit_identity_relations(self):
