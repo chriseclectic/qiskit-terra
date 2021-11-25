@@ -134,9 +134,7 @@ def decompose_clifford_ag(clifford):
     """
     # Use 1-qubit decomposition method
     if clifford.num_qubits == 1:
-        return _decompose_clifford_1q(
-            np.hstack((clifford.paulis.x, clifford.paulis.z)), clifford.paulis.phase * 2
-        )
+        return _decompose_clifford_1q(clifford.tableau(), clifford.paulis.phase * 2)
 
     # Compose a circuit which we will convert to an instruction
     circuit = QuantumCircuit(clifford.num_qubits, name=str(clifford))
@@ -155,10 +153,10 @@ def decompose_clifford_ag(clifford):
         _set_row_z_zero(clifford_cpy, circuit, i)
 
     for i in range(clifford.num_qubits):
-        if clifford_cpy.paulis.phase[i]:
+        if clifford_cpy.destabilizer_list().phase[i]:
             _append_z(clifford_cpy, i)
             circuit.z(i)
-        if clifford_cpy.paulis.phase[i + clifford.num_qubits]:
+        if clifford_cpy.stabilizer_list().phase[i]:
             _append_x(clifford_cpy, i)
             circuit.x(i)
     # Next we invert the circuit to undo the row reduction and return the
@@ -435,8 +433,8 @@ def _set_row_z_zero(clifford, circuit, qubit):
 
     num_qubits = clifford.num_qubits
     # get stabilizer
-    x = clifford.paulis.x[qubit + num_qubits]
-    z = clifford.paulis.z[qubit + num_qubits]
+    x = clifford.stabilizer_list().x[qubit]
+    z = clifford.stabilizer_list().z[qubit]
 
     # check whether Zs need to be set to zero:
     if np.any(z[qubit + 1 :]):
@@ -529,8 +527,8 @@ def decompose_clifford_greedy(clifford):
 
     # Add the phases (Pauli gates) to the Clifford circuit
     for qubit in range(num_qubits):
-        stab = clifford_cpy.paulis.phase[qubit + num_qubits] * 2
-        destab = clifford_cpy.paulis.phase[qubit] * 2
+        stab = clifford_cpy.stabilizer_list().phase[qubit]
+        destab = clifford_cpy.destabilizer_list().phase[qubit]
         if destab and stab:
             circ.y(qubit)
         elif not destab and stab:
