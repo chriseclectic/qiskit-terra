@@ -87,7 +87,7 @@ def decompose_clifford_bm(clifford):
     num_qubits = clifford.num_qubits
 
     if num_qubits == 1:
-        return _decompose_clifford_1q(clifford.tableau(), clifford.paulis.phase * 2)
+        return _decompose_clifford_1q(clifford.tableau(), clifford.paulis.phase)
 
     clifford_name = str(clifford)
 
@@ -106,7 +106,7 @@ def decompose_clifford_bm(clifford):
     for qubit in range(num_qubits):
         pos = [qubit, qubit + num_qubits]
         table = clifford.tableau()[pos][:, pos]
-        phase = clifford.paulis.phase[pos] * 2
+        phase = clifford.paulis.phase[pos]
         circ = _decompose_clifford_1q(table, phase)
         if len(circ) > 0:
             ret_circ.append(circ, [qubit])
@@ -134,7 +134,7 @@ def decompose_clifford_ag(clifford):
     """
     # Use 1-qubit decomposition method
     if clifford.num_qubits == 1:
-        return _decompose_clifford_1q(clifford.tableau(), clifford.paulis.phase * 2)
+        return _decompose_clifford_1q(clifford.tableau(), clifford.paulis.phase)
 
     # Compose a circuit which we will convert to an instruction
     circuit = QuantumCircuit(clifford.num_qubits, name=str(clifford))
@@ -431,7 +431,6 @@ def _set_row_z_zero(clifford, circuit, qubit):
     and _set_row_x_zero has been called first
     """
 
-    num_qubits = clifford.num_qubits
     # get stabilizer
     x = clifford.stabilizer_list().x[qubit]
     z = clifford.stabilizer_list().z[qubit]
