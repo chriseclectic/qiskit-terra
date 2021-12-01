@@ -264,6 +264,14 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
     def z(self, val):
         self._z[:] = val
 
+    def tableau(self):
+        """Return the boolean tableau (array) that represents x and z.
+
+        Returns:
+            np.ndarray: the tableau.
+        """
+        return np.hstack((self.x, self.z))
+
     # ---------------------------------------------------------------------
     # Size Properties
     # ---------------------------------------------------------------------
