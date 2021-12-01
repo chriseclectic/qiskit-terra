@@ -105,7 +105,7 @@ def random_pauli_table(num_qubits, size=1, seed=None):
 
 @deprecate_function(
     "The random_stabilizer_table function is deprecated as of Qiskit Terra 0.19.0 "
-    "and will be removed no sooner than 3 months after the releasedate. "
+    "and will be removed no sooner than 3 months after the release date. "
     "Use random_pauli_list method instead."  # pylint: disable=bad-docstring-quotes
 )
 def random_stabilizer_table(num_qubits, size=1, seed=None):

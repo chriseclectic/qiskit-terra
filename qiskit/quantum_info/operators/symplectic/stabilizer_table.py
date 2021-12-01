@@ -187,7 +187,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
         """
         warnings.warn(
             "The StabilizerTable class is deprecated as of Qiskit Terra 0.19.0 "
-            "and will be removed no sooner than 3 months after the releasedate. "
+            "and will be removed no sooner than 3 months after the release date. "
             "Use PauliList class instead.",
             DeprecationWarning,
             stacklevel=2,
