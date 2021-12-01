@@ -230,11 +230,14 @@ class StabilizerState(QuantumState):
             else:
                 pass
 
+        stab_x = self.clifford.stabilizers().x
+        stab_z = self.clifford.stabilizers().z
+        destab_x = self.clifford.destabilizers().x
+        destab_z = self.clifford.destabilizers().z
+
         # Check if there is a stabilizer that anti-commutes with an odd number of qubits
         # If so the expectation value is 0
         for p in range(num_qubits):
-            stab_x = self.clifford.stabilizers().x
-            stab_z = self.clifford.stabilizers().z
             num_anti = 0
             num_anti += np.count_nonzero(pauli.z & stab_x[p])
             num_anti += np.count_nonzero(pauli.x & stab_z[p])
@@ -247,8 +250,6 @@ class StabilizerState(QuantumState):
         pauli_z = (pauli.z).copy()  # Make a copy of pauli.z
         for p in range(num_qubits):
             # Check if destabilizer anti-commutes
-            destab_x = self.clifford.destabilizers().x
-            destab_z = self.clifford.destabilizers().z
             num_anti = 0
             num_anti += np.count_nonzero(pauli.z & destab_x[p])
             num_anti += np.count_nonzero(pauli.x & destab_z[p])
@@ -557,10 +558,11 @@ class StabilizerState(QuantumState):
         qubit_for_branching = -1
         ret = self.copy()
 
+        stab_x = ret.clifford.stabilizers().x
         for i in range(len(qubits)):
             qubit = qubits[len(qubits) - i - 1]
             if outcome[i] == "X":
-                is_deterministic = not any(ret.clifford.stabilizers().x[:, qubit])
+                is_deterministic = not any(stab_x[:, qubit])
                 if is_deterministic:
                     single_qubit_outcome = ret._measure_and_update(qubit, 0)
                     if single_qubit_outcome:
