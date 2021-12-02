@@ -196,6 +196,14 @@ class Clifford(BaseOperator, AdjointMixin):
         """Return PauliList"""
         return self._paulis
 
+    @paulis.setter
+    def paulis(self, value):
+        """Set the Pauli list"""
+        if not isinstance(value, PauliList):
+            self._paulis = PauliList(value)
+        else:
+            self._paulis = value.copy()
+
     @property
     @deprecate_function(
         "The Clifford.table method is deprecated as of Qiskit Terra 0.19.0 "
