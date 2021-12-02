@@ -225,7 +225,7 @@ class Clifford(BaseOperator, AdjointMixin):
     @deprecate_function(
         "The Clifford.stabilizer method is deprecated as of Qiskit Terra 0.19.0 "
         "and will be removed no sooner than 3 months after the release date. "
-        "Use Clifford.stabilizers method instead.",  # pylint:disable=bad-docstring-quotes
+        "Use Clifford.paulis property instead.",  # pylint:disable=bad-docstring-quotes
     )
     def stabilizer(self, value):
         """Set the value of stabilizer block of the StabilizerTable"""
@@ -246,7 +246,7 @@ class Clifford(BaseOperator, AdjointMixin):
     @deprecate_function(
         "The Clifford.destabilizer method is deprecated as of Qiskit Terra 0.19.0 "
         "and will be removed no sooner than 3 months after the release date. "
-        "Use Clifford.destabilizers method instead.",  # pylint:disable=bad-docstring-quotes
+        "Use Clifford.paulis property instead.",  # pylint:disable=bad-docstring-quotes
     )
     def destabilizer(self, value):
         """Set the value of destabilizer block of the StabilizerTable"""

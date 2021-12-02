@@ -5,5 +5,5 @@ deprecations:
     release. Instead, the :class:`~qiskit.quantum_info.PauliList` should be used.
     With this change, :attr:`.Clifford.table`, :attr:`.Clifford.stabilizer`, and
     :attr:`.Clifford.destabilizer` have been deprecated so that you should use
-    :attr:`.Clifford.paulis`.  :func:`.random_stabilizer_table` is also
-    deprecated.
+    :attr:`.Clifford.paulis`, :meth:`.Clifford.stabilizers`, or :meth:`.Clifford.destabilizers`.
+    :func:`.random_stabilizer_table` is also deprecated.
