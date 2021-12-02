@@ -174,18 +174,20 @@ class Clifford(BaseOperator, AdjointMixin):
     # Attributes
     # ---------------------------------------------------------------------
     @deprecate_function(
+        # pylint:disable=bad-docstring-quotes
         "The Clifford.__getitem__ method is deprecated as of Qiskit Terra 0.19.0 "
         "and will be removed no sooner than 3 months after the release date. "
-        "Use getter of Clifford.paulis property instead.",  # pylint:disable=bad-docstring-quotes
+        "Use the __getitem__ of the Clifford.paulis property instead.",
     )
     def __getitem__(self, key):
         """Return a stabilizer Pauli row"""
         return self.table.__getitem__(key)
 
     @deprecate_function(
+        # pylint:disable=bad-docstring-quotes
         "The Clifford.__getitem__ method is deprecated as of Qiskit Terra 0.19.0 "
         "and will be removed no sooner than 3 months after the release date. "
-        "Use Clifford.paulis property instead.",  # pylint:disable=bad-docstring-quotes
+        "Use the __getitem__ of the Clifford.paulis property instead.",
     )
     def __setitem__(self, key, value):
         """Set a stabilizer Pauli row"""
@@ -196,19 +198,12 @@ class Clifford(BaseOperator, AdjointMixin):
         """Return PauliList"""
         return self._paulis
 
-    @paulis.setter
-    def paulis(self, value):
-        """Set the Pauli list"""
-        if not isinstance(value, PauliList):
-            self._paulis = PauliList(value)
-        else:
-            self._paulis = value.copy()
-
     @property
     @deprecate_function(
+        # pylint:disable=bad-docstring-quotes
         "The Clifford.table method is deprecated as of Qiskit Terra 0.19.0 "
         "and will be removed no sooner than 3 months after the release date. "
-        "Use Clifford.paulis method instead.",  # pylint:disable=bad-docstring-quotes
+        "Use Clifford.paulis property instead.",
     )
     def table(self):
         """Return StabilizerTable"""
@@ -216,9 +211,10 @@ class Clifford(BaseOperator, AdjointMixin):
 
     @table.setter
     @deprecate_function(
+        # pylint:disable=bad-docstring-quotes
         "The Clifford.table method is deprecated as of Qiskit Terra 0.19.0 "
         "and will be removed no sooner than 3 months after the release date. "
-        "Use Clifford.paulis method instead.",  # pylint:disable=bad-docstring-quotes
+        "Use Clifford.paulis property instead.",
     )
     def table(self, value):
         """Set the stabilizer table"""
@@ -231,9 +227,10 @@ class Clifford(BaseOperator, AdjointMixin):
 
     @property
     @deprecate_function(
-        "The Clifford.stabilizer method is deprecated as of Qiskit Terra 0.19.0 "
+        # pylint:disable=bad-docstring-quotes
+        "The Clifford.stabilizer property is deprecated as of Qiskit Terra 0.19.0 "
         "and will be removed no sooner than 3 months after the release date. "
-        "Use Clifford.stabilizers method instead.",  # pylint:disable=bad-docstring-quotes
+        "Use Clifford.stabilizers property instead.",
     )
     def stabilizer(self):
         """Return the stabilizer block of the StabilizerTable."""
@@ -241,9 +238,10 @@ class Clifford(BaseOperator, AdjointMixin):
 
     @stabilizer.setter
     @deprecate_function(
-        "The Clifford.stabilizer method is deprecated as of Qiskit Terra 0.19.0 "
+        # pylint:disable=bad-docstring-quotes
+        "The Clifford.stabilizer property is deprecated as of Qiskit Terra 0.19.0 "
         "and will be removed no sooner than 3 months after the release date. "
-        "Use Clifford.paulis property instead.",  # pylint:disable=bad-docstring-quotes
+        "Use the __getitem__ of the Clifford.paulis property instead.",
     )
     def stabilizer(self, value):
         """Set the value of stabilizer block of the StabilizerTable"""
@@ -252,9 +250,10 @@ class Clifford(BaseOperator, AdjointMixin):
 
     @property
     @deprecate_function(
-        "The Clifford.destabilizer method is deprecated as of Qiskit Terra 0.19.0 "
+        # pylint:disable=bad-docstring-quotes
+        "The Clifford.destabilizer property is deprecated as of Qiskit Terra 0.19.0 "
         "and will be removed no sooner than 3 months after the release date. "
-        "Use Clifford.destabilizers method instead.",  # pylint:disable=bad-docstring-quotes
+        "Use Clifford.destabilizers property instead.",
     )
     def destabilizer(self):
         """Return the destabilizer block of the StabilizerTable."""
@@ -262,9 +261,10 @@ class Clifford(BaseOperator, AdjointMixin):
 
     @destabilizer.setter
     @deprecate_function(
-        "The Clifford.destabilizer method is deprecated as of Qiskit Terra 0.19.0 "
+        # pylint:disable=bad-docstring-quotes
+        "The Clifford.destabilizer property is deprecated as of Qiskit Terra 0.19.0 "
         "and will be removed no sooner than 3 months after the release date. "
-        "Use Clifford.paulis property instead.",  # pylint:disable=bad-docstring-quotes
+        "Use the __getitem__ of the Clifford.paulis property instead.",
     )
     def destabilizer(self, value):
         """Set the value of destabilizer block of the StabilizerTable"""
