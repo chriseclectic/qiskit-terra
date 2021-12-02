@@ -173,10 +173,20 @@ class Clifford(BaseOperator, AdjointMixin):
     # ---------------------------------------------------------------------
     # Attributes
     # ---------------------------------------------------------------------
+    @deprecate_function(
+        "The Clifford.__getitem__ method is deprecated as of Qiskit Terra 0.19.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+        "Use getter of Clifford.paulis property instead.",  # pylint:disable=bad-docstring-quotes
+    )
     def __getitem__(self, key):
         """Return a stabilizer Pauli row"""
-        return self._paulis.__getitem__(key)
+        return self.table.__getitem__(key)
 
+    @deprecate_function(
+        "The Clifford.__getitem__ method is deprecated as of Qiskit Terra 0.19.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+        "Use Clifford.paulis property instead.",  # pylint:disable=bad-docstring-quotes
+    )
     def __setitem__(self, key, value):
         """Set a stabilizer Pauli row"""
         self._paulis.__setitem__(key, value)
@@ -259,7 +269,7 @@ class Clifford(BaseOperator, AdjointMixin):
         Returns:
             PauliList: the Pauli list
         """
-        return self[self.num_qubits : 2 * self.num_qubits]
+        return self.paulis[self.num_qubits : 2 * self.num_qubits]
 
     def destabilizers(self):
         """Return the PauliList corresponding to destabilizer
@@ -267,7 +277,7 @@ class Clifford(BaseOperator, AdjointMixin):
         Returns:
             PauliList: the Pauli list
         """
-        return self[0 : self.num_qubits]
+        return self.paulis[0 : self.num_qubits]
 
     # ---------------------------------------------------------------------
     # Utility Operator methods
