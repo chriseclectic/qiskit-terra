@@ -24,7 +24,7 @@ from qiskit.converters import (
     dagdependency_to_circuit,
 )
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import QuantumCircuit, Measure, Clbit
+from qiskit.circuit import QuantumCircuit, Measure, Clbit, Instruction
 from qiskit.dagcircuit.collect_blocks import BlockCollector, BlockSplitter, BlockCollapser
 
 
@@ -687,6 +687,53 @@ class TestCollectBlocks(QiskitTestCase):
         self.assertEqual(len(collapsed_qc.data), 1)
         self.assertEqual(collapsed_qc.data[0].operation.name, "COLLAPSED")
         self.assertEqual(collapsed_qc.data[0].operation.definition.num_qubits, 4)
+        self.assertEqual(collapsed_qc.data[0].operation.definition.num_clbits, 3)
+
+    def test_collect_blocks_with_cregs(self):
+        """Test collecting and collapsing blocks with classical bits appearing under
+        condition."""
+
+        qreg = QuantumRegister(3, "qr")
+        creg1 = ClassicalRegister(1, "cr1")
+        creg2 = ClassicalRegister(2, "cr2")
+
+        qc = QuantumCircuit(qreg, creg1, creg2)
+        qc.cx(0, 1).c_if(creg1, 1)
+        qc.cx(1, 2)
+        qc.cx(0, 1).c_if(creg2, 1)
+
+        dag = circuit_to_dag(qc)
+
+        # Collect all cx gates (including the conditional ones)
+        blocks = BlockCollector(dag).collect_all_matching_blocks(
+            lambda node: node.op.name == "cx", split_blocks=False, min_block_size=1
+        )
+
+        # We should have a single block consisting of all CX nodes
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(len(blocks[0]), 3)
+
+        def _collapse_fn(circuit):
+            # TODO: Fix circuit_to_instruction to work with multiple
+            # classical registers
+            nq = circuit.num_qubits
+            nc = circuit.num_clbits
+            op = Instruction("COLLAPSED", nq, nc, circuit.parameters)
+            regs = []
+            if nq:
+                regs.append(QuantumRegister(nq, "q"))
+            if nc:
+                regs.append(ClassicalRegister(nc, "c"))
+            op.definition = QuantumCircuit(*regs).compose(circuit)
+            return op
+
+        # Collapse block with measures into a single "COLLAPSED" block
+        dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
+        collapsed_qc = dag_to_circuit(dag)
+
+        self.assertEqual(len(collapsed_qc.data), 1)
+        self.assertEqual(collapsed_qc.data[0].operation.name, "COLLAPSED")
+        self.assertEqual(collapsed_qc.data[0].operation.definition.num_qubits, 3)
         self.assertEqual(collapsed_qc.data[0].operation.definition.num_clbits, 3)
 
 
