@@ -14,6 +14,7 @@ Utility functions for primitives
 """
 from __future__ import annotations
 
+import warnings
 import sys
 import typing
 from collections.abc import Iterable
@@ -80,6 +81,14 @@ def init_observable(observable: BaseOperator | PauliSumOp | str) -> SparsePauliO
             )
         return observable.coeff * observable.primitive
     elif isinstance(observable, BaseOperator) and not isinstance(observable, BasePauli):
+        warnings.warn(
+            "Implicit conversion from a BaseOperator to a SparsePauliOp in estimator"
+            " observable arguments is deprecated as of Qiskit 0.46 and will be"
+            " in Qiskit 1.0. You should explicitly convert to a SparsePauli op using"
+            " `SparsePauliOp.from_operator(op)` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return SparsePauliOp.from_operator(observable)
     else:
         return SparsePauliOp(observable)
