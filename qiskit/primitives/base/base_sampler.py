@@ -75,16 +75,18 @@ Here is an example of how sampler is used.
 
 from __future__ import annotations
 
-from abc import abstractmethod
+import warnings
 from collections.abc import Sequence
 from copy import copy
 from typing import Generic, TypeVar
 
-from qiskit.circuit import ControlFlowOp, Measure, QuantumCircuit
+from qiskit.utils.deprecation import deprecate_func
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.providers import JobV1 as Job
 
 from .base_primitive import BasePrimitive
+from . import validation
 
 T = TypeVar("T", bound=Job)
 
@@ -110,6 +112,17 @@ class BaseSampler(BasePrimitive, Generic[T]):
         self._parameters = []
         super().__init__(options)
 
+        # Raise warning if subclass doesn't override `run` method in anticipation of
+        # it becoming an `abstractmethod`
+        if self.run.__qualname__ == BaseSampler.run.__qualname__:
+            warnings.warn(
+                "The `BaseSampler.run` method being callable is deprecated as of Qiskit 0.45"
+                " and will be converted to an abstractmethod in Qiskit 1.0. Subclasses should"
+                " implement a `run` with the same signature and its own validation directly.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
     def run(
         self,
         circuits: QuantumCircuit | Sequence[QuantumCircuit],
@@ -131,14 +144,14 @@ class BaseSampler(BasePrimitive, Generic[T]):
             ValueError: Invalid arguments are given.
         """
         # Singular validation
-        circuits = self._validate_circuits(circuits)
-        parameter_values = self._validate_parameter_values(
+        circuits = validation._validate_circuits(circuits, requires_measure=True)
+        parameter_values = validation._validate_parameter_values(
             parameter_values,
             default=[()] * len(circuits),
         )
 
         # Cross-validation
-        self._cross_validate_circuits_parameter_values(circuits, parameter_values)
+        validation._cross_validate_circuits_parameter_values(circuits, parameter_values)
 
         # Options
         run_opts = copy(self.options)
@@ -150,7 +163,10 @@ class BaseSampler(BasePrimitive, Generic[T]):
             **run_opts.__dict__,
         )
 
-    @abstractmethod
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="Implement a `run` method override instead.",
+    )
     def _run(
         self,
         circuits: tuple[QuantumCircuit, ...],
@@ -160,26 +176,15 @@ class BaseSampler(BasePrimitive, Generic[T]):
         raise NotImplementedError("The subclass of BaseSampler must implment `_run` method.")
 
     @classmethod
+    @deprecate_func(since="0.45.0")
     def _validate_circuits(
         cls,
         circuits: Sequence[QuantumCircuit] | QuantumCircuit,
     ) -> tuple[QuantumCircuit, ...]:
-        circuits = super()._validate_circuits(circuits)
-        for i, circuit in enumerate(circuits):
-            if circuit.num_clbits == 0:
-                raise ValueError(
-                    f"The {i}-th circuit does not have any classical bit. "
-                    "Sampler requires classical bits, plus measurements "
-                    "on the desired qubits."
-                )
-            if not _has_measure(circuit):
-                raise ValueError(
-                    f"The {i}-th circuit does not have Measure instruction. "
-                    "Without measurements, the circuit cannot be sampled from."
-                )
-        return circuits
+        return validation._validate_circuits(circuits, requires_measure=True)
 
     @property
+    @deprecate_func(since="0.45.0", is_property=True)
     def circuits(self) -> tuple[QuantumCircuit, ...]:
         """Quantum circuits to be sampled.
 
@@ -189,6 +194,7 @@ class BaseSampler(BasePrimitive, Generic[T]):
         return tuple(self._circuits)
 
     @property
+    @deprecate_func(since="0.45.0", is_property=True)
     def parameters(self) -> tuple[ParameterView, ...]:
         """Parameters of quantum circuits.
 
@@ -196,14 +202,3 @@ class BaseSampler(BasePrimitive, Generic[T]):
             List of the parameters in each quantum circuit.
         """
         return tuple(self._parameters)
-
-
-def _has_measure(circuit: QuantumCircuit) -> bool:
-    for instruction in reversed(circuit):
-        if isinstance(instruction.operation, Measure):
-            return True
-        elif isinstance(instruction.operation, ControlFlowOp):
-            for block in instruction.operation.blocks:
-                if _has_measure(block):
-                    return True
-    return False

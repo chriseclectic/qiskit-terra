@@ -80,20 +80,21 @@ Here is an example of how the estimator is used.
 
 from __future__ import annotations
 
-from abc import abstractmethod
 from collections.abc import Sequence
 from copy import copy
 from typing import Generic, TypeVar
 import typing
+import warnings
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.providers import JobV1 as Job
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.utils.deprecation import deprecate_func
 
-from ..utils import init_observable
 from .base_primitive import BasePrimitive
+from . import validation
 
 if typing.TYPE_CHECKING:
     from qiskit.opflow import PauliSumOp
@@ -125,6 +126,16 @@ class BaseEstimator(BasePrimitive, Generic[T]):
         self._observables = []
         self._parameters = []
         super().__init__(options)
+        # Raise warning if subclass doesn't override `run` method in anticipation of
+        # it becoming an `abstractmethod`
+        if self.run.__qualname__ == BaseEstimator.run.__qualname__:
+            warnings.warn(
+                "The `BaseEstimator.run` method being callable is deprecated as of Qiskit 0.45"
+                " and will be converted to an abstractmethod in Qiskit 1.0. Subclasses should"
+                " implement a `run` with the same signature and its own validation directly.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
     def run(
         self,
@@ -170,16 +181,16 @@ class BaseEstimator(BasePrimitive, Generic[T]):
             ValueError: Invalid argument values given.
         """
         # Singular validation
-        circuits = self._validate_circuits(circuits)
-        observables = self._validate_observables(observables)
-        parameter_values = self._validate_parameter_values(
+        circuits = validation._validate_circuits(circuits)
+        observables = validation._validate_observables(observables)
+        parameter_values = validation._validate_parameter_values(
             parameter_values,
             default=[()] * len(circuits),
         )
 
         # Cross-validation
-        self._cross_validate_circuits_parameter_values(circuits, parameter_values)
-        self._cross_validate_circuits_observables(circuits, observables)
+        validation._cross_validate_circuits_parameter_values(circuits, parameter_values)
+        validation._cross_validate_circuits_observables(circuits, observables)
 
         # Options
         run_opts = copy(self.options)
@@ -192,7 +203,7 @@ class BaseEstimator(BasePrimitive, Generic[T]):
             **run_opts.__dict__,
         )
 
-    @abstractmethod
+    @deprecate_func(since="0.45.0")
     def _run(
         self,
         circuits: tuple[QuantumCircuit, ...],
@@ -203,33 +214,21 @@ class BaseEstimator(BasePrimitive, Generic[T]):
         raise NotImplementedError("The subclass of BaseEstimator must implment `_run` method.")
 
     @staticmethod
+    @deprecate_func(since="0.45.0")
     def _validate_observables(
         observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
     ) -> tuple[SparsePauliOp, ...]:
-        if isinstance(observables, str) or not isinstance(observables, Sequence):
-            observables = (observables,)
-        if len(observables) == 0:
-            raise ValueError("No observables were provided.")
-        return tuple(init_observable(obs) for obs in observables)
+        return validation._validate_observables(observables)
 
     @staticmethod
+    @deprecate_func(since="0.45.0")
     def _cross_validate_circuits_observables(
         circuits: tuple[QuantumCircuit, ...], observables: tuple[BaseOperator | PauliSumOp, ...]
     ) -> None:
-        if len(circuits) != len(observables):
-            raise ValueError(
-                f"The number of circuits ({len(circuits)}) does not match "
-                f"the number of observables ({len(observables)})."
-            )
-        for i, (circuit, observable) in enumerate(zip(circuits, observables)):
-            if circuit.num_qubits != observable.num_qubits:
-                raise ValueError(
-                    f"The number of qubits of the {i}-th circuit ({circuit.num_qubits}) does "
-                    f"not match the number of qubits of the {i}-th observable "
-                    f"({observable.num_qubits})."
-                )
+        return validation._cross_validate_circuits_observables(circuits, observables)
 
     @property
+    @deprecate_func(since="0.45.0", is_property=True)
     def circuits(self) -> tuple[QuantumCircuit, ...]:
         """Quantum circuits that represents quantum states.
 
@@ -239,6 +238,7 @@ class BaseEstimator(BasePrimitive, Generic[T]):
         return tuple(self._circuits)
 
     @property
+    @deprecate_func(since="0.45.0", is_property=True)
     def observables(self) -> tuple[SparsePauliOp, ...]:
         """Observables to be estimated.
 
@@ -248,6 +248,7 @@ class BaseEstimator(BasePrimitive, Generic[T]):
         return tuple(self._observables)
 
     @property
+    @deprecate_func(since="0.45.0", is_property=True)
     def parameters(self) -> tuple[ParameterView, ...]:
         """Parameters of the quantum circuits.
 

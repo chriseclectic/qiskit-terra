@@ -393,9 +393,25 @@ class TestSampler(QiskitTestCase):
             sampler = Sampler(options={"shots": 3000})
             self.assertEqual(sampler.options.get("shots"), 3000)
         with self.subTest("set_options"):
-            sampler.set_options(shots=1024, seed=15)
+            sampler.options.update_options(shots=1024, seed=15)
             self.assertEqual(sampler.options.get("shots"), 1024)
             self.assertEqual(sampler.options.get("seed"), 15)
+        with self.subTest("run"):
+            params, target = self._generate_params_target([1])
+            result = sampler.run([self._pqc], parameter_values=params).result()
+            self._compare_probs(result.quasi_dists, target)
+            self.assertEqual(result.quasi_dists[0].shots, 1024)
+
+    def test_options_deprecated(self):
+        """Test for options"""
+        with self.subTest("init"):
+            sampler = Sampler(options={"shots": 3000})
+            self.assertEqual(sampler.options.get("shots"), 3000)
+        with self.subTest("set_options"):
+            with self.assertWarns(DeprecationWarning):
+                sampler.set_options(shots=1024, seed=15)
+                self.assertEqual(sampler.options.get("shots"), 1024)
+                self.assertEqual(sampler.options.get("seed"), 15)
         with self.subTest("run"):
             params, target = self._generate_params_target([1])
             result = sampler.run([self._pqc], parameter_values=params).result()
