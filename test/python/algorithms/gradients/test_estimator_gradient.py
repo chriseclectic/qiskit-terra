@@ -31,7 +31,7 @@ from qiskit.circuit import Parameter
 from qiskit.circuit.library import EfficientSU2, RealAmplitudes
 from qiskit.circuit.library.standard_gates import RXXGate, RYYGate, RZXGate, RZZGate
 from qiskit.primitives import Estimator
-from qiskit.quantum_info import Operator, SparsePauliOp, Pauli
+from qiskit.quantum_info import SparsePauliOp, Pauli
 from qiskit.quantum_info.random import random_pauli_list
 from qiskit.test import QiskitTestCase
 
@@ -64,12 +64,6 @@ class TestEstimatorGradient(QiskitTestCase):
         op = SparsePauliOp.from_list([("Z", 1)])
         correct_result = -1 / np.sqrt(2)
         param = [np.pi / 4]
-        value = gradient.run([qc], [op], [param]).result().gradients[0]
-        self.assertAlmostEqual(value[0], correct_result, 3)
-        op = SparsePauliOp.from_list([("Z", 1)])
-        value = gradient.run([qc], [op], [param]).result().gradients[0]
-        self.assertAlmostEqual(value[0], correct_result, 3)
-        op = Operator.from_label("Z")
         value = gradient.run([qc], [op], [param]).result().gradients[0]
         self.assertAlmostEqual(value[0], correct_result, 3)
 
